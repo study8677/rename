@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "retitle"
+version = "0.1.0"
+description = "Auto-rename idle Claude Code, Codex & Cursor sessions to match what they're actually about."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "JingWen Fan" }]
+keywords = [
+    "claude-code",
+    "codex",
+    "cursor",
+    "session",
+    "rename",
+    "ai",
+    "productivity",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Utilities",
+]
+# Zero runtime dependencies — everything runs on the Python standard library.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/study8677/retitle"
+Repository = "https://github.com/study8677/retitle"
+Issues = "https://github.com/study8677/retitle/issues"
+
+[project.scripts]
+retitle = "retitle.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/retitle"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

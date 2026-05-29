@@ -1,0 +1,233 @@
+<div align="center">
+
+# 🏷️ retitle
+
+### Your AI coding sessions, always named after what they're *actually* about.
+
+Claude Code, Codex and Cursor name a chat from your **first message** — then never look back.
+Two hours later the conversation is about something completely different, but the sidebar
+still says *"Check if branches are synced."* Multiply that by fifty sessions and your history
+is useless for finding anything.
+
+**`retitle` runs quietly in the background and, whenever a session goes idle, rewrites its
+title to match the latest work — across all three tools.**
+
+[![CI](https://github.com/study8677/retitle/actions/workflows/ci.yml/badge.svg)](https://github.com/study8677/retitle/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](pyproject.toml)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-orange.svg)](CONTRIBUTING.md)
+
+</div>
+
+---
+
+## The problem
+
+Every AI coding tool auto-titles a session once, from its opening prompt, and freezes it there:
+
+| Tool | What the sidebar says | What the session is now about |
+|------|----------------------|--------------------------------|
+| **Cursor** | `Add a loading spinner` | *migrating the database to Postgres* |
+| **Codex** | `Fix a typo in the README` | *debugging a flaky CI pipeline* |
+| **Claude Code** | `Check if branches are synced` | *implementing the audit-log feature* |
+
+The title is a lie within ten minutes. `retitle` keeps it honest.
+
+<sub>(Examples are illustrative — `retitle` reads your sessions locally and never publishes them anywhere.)</sub>
+
+## What it looks like
+
+```console
+$ retitle list
+
+Claude Code
+     16m  Check if branches are synced          → Implement the audit-log feature
+     34m  —                                     → Fix dashboard white-screen on load
+      2m  Refactor the deploy script            · active
+
+Codex
+    1.2h  Set up the new service                → Design the session auto-rename flow
+    2.1h  Review the API changes                · no new content since last rename
+
+Cursor
+     29m  Add a loading spinner                 → 修复登录页面的样式问题
+    2.4h  First sync question                   → Track down the duplicate-error bug
+
+7 session(s) would be renamed next pass (idle ≥ 5m, namer=heuristic).
+Run `retitle once` to apply, or `retitle install` to do it continuously.
+```
+
+---
+
+## Quick start
+
+`retitle` is pure Python with **zero dependencies**. Install it as an isolated CLI:
+
+```bash
+# with pipx (recommended)
+pipx install git+https://github.com/study8677/retitle.git
+
+# or with uv
+uv tool install git+https://github.com/study8677/retitle.git
+
+# or from source
+git clone https://github.com/study8677/retitle.git && cd retitle
+pip install -e .
+```
+
+Then:
+
+```bash
+retitle status         # what did it detect on this machine?
+retitle list           # preview: current title → proposed title (writes nothing)
+retitle once           # do one rename pass right now
+retitle install        # run it forever in the background (launchd / systemd)
+```
+
+That's it. With `retitle install` it wakes up every minute, finds sessions that have been idle
+for 5 minutes, and retitles the ones whose content has changed since it last looked.
+
+---
+
+## How it works
+
+```
+        ┌──────────── every  poll_seconds (default 60s) ────────────┐
+        │                                                           │
+   discover ──► for each session idle ≥ 5m with NEW content ──► namer ──► write title back
+   (per tool)         │                                           │            │
+   Claude Code        │ skip if still active                      │            ├─ Claude Code: append an `ai-title` line
+   Codex              │ skip if unchanged since last rename        │            ├─ Codex:       UPDATE threads SET title
+   Cursor             │ skip if a human renamed it (until          │            └─ Cursor:      patch composerHeaders + composerData
+                      │      the conversation moves on)            │
+```
+
+The decision rule for each session is deliberately conservative:
+
+1. **Still in use?** Idle for less than your threshold → leave it alone.
+2. **Nothing new?** Content hash matches the title we last wrote → skip (re-runs are free).
+3. **Renamed by hand?** We never clobber a human edit — until you send new messages and it goes idle again.
+4. Otherwise: generate a fresh title and write it.
+
+This makes the whole thing **idempotent** and **safe to run continuously**.
+
+---
+
+## Supported tools
+
+| Tool | Reads | Writes | Status |
+|------|-------|--------|--------|
+| **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | appends an `ai-title` line (append-only — the safest write) | ✅ stable |
+| **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
+| **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
+
+> **A note on writing while the app is open.** Codex and Cursor keep their data in live SQLite
+> databases. `retitle` writes carefully (read-only reads, `busy_timeout` on writes), and only
+> ever touches *idle* sessions. Still, Cursor in particular caches chats in memory, so a title
+> you change on disk may be overwritten if you reopen that exact chat in a running Cursor. For
+> the most reliable Cursor results, let `retitle` run while Cursor is closed. Claude Code's
+> append-only format has no such caveat.
+
+---
+
+## Naming backends
+
+By default `retitle` uses a **heuristic** namer: it derives the title from your most recent
+substantive message. It's instant, offline, costs nothing, and needs no API key — but it's
+literally just a cleaned-up snippet of what you typed.
+
+For genuinely good titles, point it at a model. Set `namer` in your config (or `--namer`):
+
+| `namer` | What it does | Setup |
+|---------|--------------|-------|
+| `heuristic` | latest message, cleaned up | none (default) |
+| `claude` | shells out to the `claude` CLI | uses your existing Claude Code login |
+| `codex` | shells out to the `codex` CLI | uses your existing Codex login |
+| `anthropic` | Anthropic API directly | `ANTHROPIC_API_KEY` |
+| `openai` | OpenAI API directly | `OPENAI_API_KEY` |
+
+```bash
+retitle once --namer claude     # try the smart namer on one pass
+```
+
+---
+
+## Configuration
+
+`retitle config` creates and prints `~/.config/retitle/config.toml`:
+
+```toml
+idle_seconds = 300          # rename after 5 minutes idle
+poll_seconds = 60           # scan once a minute
+tools = ["claude-code", "codex", "cursor"]
+namer = "heuristic"         # heuristic | claude | codex | anthropic | openai
+max_age_days = 7            # ignore sessions older than a week
+min_user_messages = 1       # need at least this many real messages
+dry_run = false
+
+[anthropic]
+model = "claude-haiku-4-5"
+
+[openai]
+model = "gpt-4o-mini"
+```
+
+Any field can be overridden per-invocation: `retitle run --idle 600 --namer anthropic --tool cursor`.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `retitle list` | Preview every discovered session and its proposed title (writes nothing) |
+| `retitle once` | Run a single rename pass and exit |
+| `retitle run` | Run continuously in the foreground (add `--once`, `--dry-run`) |
+| `retitle install` | Install + start the background service (launchd on macOS, systemd on Linux) |
+| `retitle uninstall` | Stop and remove the background service |
+| `retitle status` | Show config, detected tools, and daemon status |
+| `retitle config` | Create / print the config file |
+
+---
+
+## Privacy & safety
+
+- **Everything stays on your machine.** With the default `heuristic` namer, nothing ever leaves
+  your computer. Only the `anthropic`/`openai` namers send a short transcript excerpt to that API
+  (and only if you opt in by setting a key); the `claude`/`codex` namers go through tools you've
+  already authorized.
+- **It only ever changes titles.** `retitle` reads transcripts and writes a single title field /
+  appends a single line. It never edits, deletes, or reorders your conversations.
+- **It's reversible and idempotent.** A bad title is just a title — send a message and it gets
+  re-evaluated. Re-running does nothing unless content changed.
+
+## FAQ
+
+**Will it fight with the tool's own auto-naming?**
+No. The tools title once and stop; `retitle` only acts after a session is idle, so they aren't
+writing at the same time.
+
+**Will it overwrite titles I set myself?**
+No — not until you add new messages to that session. Manual titles are respected until the
+conversation actually moves on.
+
+**Does it cost API tokens?**
+Only if you choose an LLM namer. The default heuristic is free and offline.
+
+**Is it safe to run all the time?**
+Yes — that's the design. See [How it works](#how-it-works). The one caveat is editing Cursor's DB
+while Cursor is open (above).
+
+## Contributing
+
+Adding support for another tool is one file — implement four methods (`available`, `discover`,
+`read_transcript`, `set_title`) in `src/retitle/adapters/`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+git clone https://github.com/study8677/retitle.git && cd retitle
+pip install -e ".[dev]"
+pytest
+```
+
+## License
+
+[MIT](LICENSE) © JingWen Fan
