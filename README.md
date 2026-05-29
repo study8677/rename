@@ -219,6 +219,8 @@ Any field can be overridden per-invocation: `retitle run --idle 600 --namer anth
 | `retitle status` | Show config, detected tools, and daemon status |
 | `retitle config` | Create / print the config file |
 
+> `retitle list` and `retitle search` also accept `--json` for scripting.
+
 ---
 
 ## Privacy & safety
@@ -250,6 +252,9 @@ Yes — that's the design. See [How it works](#how-it-works). The one caveat is 
 while Cursor is open (above).
 
 ## Contributing
+
+Curious how it works under the hood — including the reverse-engineered session
+storage format of each tool? See **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 Adding support for another tool is one file — implement four methods (`available`, `discover`,
 `read_transcript`, `set_title`) in `src/retitle/adapters/`. See [CONTRIBUTING.md](CONTRIBUTING.md).

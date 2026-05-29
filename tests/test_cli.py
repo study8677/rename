@@ -1,4 +1,5 @@
 import argparse
+import json
 import time
 
 from retitle import cli
@@ -21,7 +22,9 @@ class FakeAdapter:
 
 
 def _args(**kw):
-    base = dict(query="", content=False, tool=None, days=90, limit=30, verbose=False)
+    base = dict(
+        query="", content=False, tool=None, days=90, limit=30, verbose=False, json=False
+    )
     base.update(kw)
     return argparse.Namespace(**base)
 
@@ -84,3 +87,17 @@ def test_search_respects_days_window(capsys, monkeypatch):
     monkeypatch.setattr(cli, "get_adapters", lambda cfg: [FakeAdapter(sessions)])
     cli.cmd_search(_args(query="deploy", days=30))  # 100 days ago > 30d window
     assert "No sessions matching" in capsys.readouterr().out
+
+
+def test_search_json_output(capsys, monkeypatch):
+    now = time.time()
+    sessions = [
+        Session("fake", "s1", "Deploy stuff", last_active=now - 50, cwd="/home/me/proj")
+    ]
+    monkeypatch.setattr(cli, "get_adapters", lambda cfg: [FakeAdapter(sessions)])
+    cli.cmd_search(_args(query="deploy", json=True))
+    data = json.loads(capsys.readouterr().out)
+    assert data[0]["tool"] == "fake"
+    assert data[0]["id"] == "s1"
+    assert data[0]["title"] == "Deploy stuff"
+    assert data[0]["cwd"] == "/home/me/proj"

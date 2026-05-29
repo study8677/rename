@@ -103,6 +103,23 @@ def cmd_list(args) -> int:
         return 1
 
     plans, _, _ = engine.plan()
+    if getattr(args, "json", False):
+        now = util.now()
+        out = [
+            {
+                "tool": p.session.tool,
+                "id": p.session.id,
+                "title": p.session.title,
+                "proposed_title": p.new_title if p.action == "rename" else None,
+                "action": p.action,
+                "reason": p.reason,
+                "idle_seconds": round(p.session.idle_seconds(now)),
+                "cwd": p.session.cwd,
+            }
+            for _a, p in plans
+        ]
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0
     by_tool: dict[str, list] = {}
     for adapter, plan in plans:
         by_tool.setdefault(adapter.label, []).append(plan)
@@ -249,6 +266,21 @@ def cmd_search(args) -> int:
                     hits.append((s.last_active, adapter.label, s, snippet))
     hits.sort(key=lambda h: h[0], reverse=True)
 
+    if getattr(args, "json", False):
+        out = [
+            {
+                "tool": s.tool,
+                "id": s.id,
+                "title": s.title,
+                "idle_seconds": round(s.idle_seconds(now)),
+                "cwd": s.cwd,
+                "snippet": snippet,
+            }
+            for _la, _label, s, snippet in hits[: args.limit]
+        ]
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0
+
     if not hits:
         scope = "titles and content" if args.content else "titles"
         print(dim(f'No sessions matching "{args.query}" in {scope} (last {args.days}d).'))
@@ -318,6 +350,7 @@ def build_parser() -> argparse.ArgumentParser:
     pl = sub.add_parser("list", help="preview sessions and the titles retitle would set")
     _add_common(pl)
     pl.add_argument("--limit", type=int, default=40, help="max rows per tool")
+    pl.add_argument("--json", action="store_true", help="output JSON instead of a table")
     pl.set_defaults(func=cmd_list, dry_run=True)
 
     psr = sub.add_parser(
@@ -337,6 +370,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--days", type=int, default=90, help="how far back to search (default: 90)"
     )
     psr.add_argument("--limit", type=int, default=30, help="max results to show")
+    psr.add_argument("--json", action="store_true", help="output JSON instead of a table")
     psr.add_argument("-v", "--verbose", action="store_true", help="verbose logging")
     psr.set_defaults(func=cmd_search)
 
@@ -367,6 +401,7 @@ _DEFAULTS = {
     "verbose": False,
     "limit": 40,
     "path": False,
+    "json": False,
 }
 
 

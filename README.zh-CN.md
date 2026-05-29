@@ -213,6 +213,8 @@ model = "gpt-4o-mini"
 | `retitle status` | 显示配置、检测到的工具、守护进程状态 |
 | `retitle config` | 创建 / 打印配置文件 |
 
+> `retitle list` 和 `retitle search` 也支持 `--json`，方便脚本集成。
+
 ---
 
 ## 隐私与安全
@@ -240,6 +242,8 @@ model = "gpt-4o-mini"
 安全——这就是它的设计目标。见[工作原理](#工作原理)。唯一的注意点是「Cursor 开着时改它的数据库」（见上文）。
 
 ## 参与贡献
+
+好奇它的内部原理——包括逆向出的三个工具的会话存储格式？见 **[ARCHITECTURE.md](ARCHITECTURE.md)**。
 
 新增一个工具的支持只需一个文件——在 `src/retitle/adapters/` 里实现四个方法
 （`available`、`discover`、`read_transcript`、`set_title`）。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。

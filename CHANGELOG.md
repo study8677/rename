@@ -9,7 +9,9 @@ All notable changes to this project are documented here. Format loosely follows
 - `retitle search <query>` — find sessions across Claude Code, Codex and Cursor
   at once, by title (fast) or with `--content` to grep message text, with
   highlighted matches and snippets.
+- `--json` output for `retitle list` and `retitle search`, for scripting.
 - `SECURITY.md` documenting the privacy/data-safety model and how to report issues.
+- `ARCHITECTURE.md` explaining the layering and each tool's reverse-engineered storage.
 - Ruff linting, enforced in CI.
 
 ## [0.1.0] - 2026-05-29
