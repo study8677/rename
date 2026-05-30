@@ -162,24 +162,26 @@ This makes the whole thing **idempotent** and **safe to run continuously**.
 
 ---
 
-## Naming backends
+## Naming backends — no API key required
 
-By default `retitle` uses a **heuristic** namer: it derives the title from your most recent
-substantive message. It's instant, offline, costs nothing, and needs no API key — but it's
-literally just a cleaned-up snippet of what you typed.
+The default, **`auto`**, needs **no API key at all**. retitle reuses the `claude` or
+`codex` CLI you're *already logged into* to write good, LLM-quality titles, and falls
+back to a fully-offline heuristic if neither is installed. You never paste a key.
 
-For genuinely good titles, point it at a model. Set `namer` in your config (or `--namer`):
-
-| `namer` | What it does | Setup |
-|---------|--------------|-------|
-| `heuristic` | latest message, cleaned up | none (default) |
-| `claude` | shells out to the `claude` CLI | uses your existing Claude Code login |
-| `codex` | shells out to the `codex` CLI | uses your existing Codex login |
+| `namer` | What it does | API key? |
+|---------|--------------|----------|
+| `auto` | your logged-in `claude` / `codex` CLI, else `heuristic` | **none** · default |
+| `heuristic` | a cleaned-up snippet of your latest message; instant, offline | none |
+| `claude` | always the `claude` CLI (uses the fast Haiku model) | none — your login |
+| `codex` | always the `codex` CLI | none — your login |
 | `anthropic` | Anthropic API directly | `ANTHROPIC_API_KEY` |
 | `openai` | OpenAI API directly | `OPENAI_API_KEY` |
 
+Out of the box — nothing to configure, no key to paste — you get LLM-quality titles
+using credits you already have. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
+
 ```bash
-retitle once --namer claude     # try the smart namer on one pass
+retitle status        # shows what auto resolved to, e.g. "namer=auto → claude"
 ```
 
 ---
@@ -226,10 +228,10 @@ Any field can be overridden per-invocation: `retitle run --idle 600 --namer anth
 
 ## Privacy & safety
 
-- **Everything stays on your machine.** With the default `heuristic` namer, nothing ever leaves
-  your computer. Only the `anthropic`/`openai` namers send a short transcript excerpt to that API
-  (and only if you opt in by setting a key); the `claude`/`codex` namers go through tools you've
-  already authorized.
+- **No key to paste; titling uses your own logged-in tool.** The default `auto` namer asks the
+  `claude`/`codex` CLI you're already signed into to write the title, so a short transcript
+  excerpt goes to that provider (credits you already have — no API key needed). Want nothing to
+  leave your machine at all? Set `namer = "heuristic"` and it's 100% offline.
 - **It only ever changes titles.** `retitle` reads transcripts and writes a single title field /
   appends a single line. It never edits, deletes, or reorders your conversations.
 - **It's reversible and idempotent.** A bad title is just a title — send a message and it gets
@@ -245,8 +247,9 @@ writing at the same time.
 No — not until you add new messages to that session. Manual titles are respected until the
 conversation actually moves on.
 
-**Does it cost API tokens?**
-Only if you choose an LLM namer. The default heuristic is free and offline.
+**Do I need an API key?**
+No. The default reuses the `claude` / `codex` CLI you're already logged into — no key to
+paste. It spends credits you already have; for zero cost, set `namer = "heuristic"` (offline).
 
 **Is it safe to run all the time?**
 Yes — that's the design. See [How it works](#how-it-works). The one caveat is editing Cursor's DB

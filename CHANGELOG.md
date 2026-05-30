@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/).
 
+## [0.3.0] - 2026-05-30
+
+### Changed
+- **Default namer is now `auto` — no API key required.** retitle reuses the
+  `claude` or `codex` CLI you're already logged into to produce LLM-quality
+  titles, falling back to the offline heuristic if neither is installed. The
+  `claude` namer defaults to the fast Haiku model. Set `namer = "heuristic"` for a
+  fully offline, zero-cost run.
+
+### Added
+- `retitle status` now shows what `auto` resolved to (e.g. `namer=auto → claude`).
+
 ## [0.2.0] - 2026-05-29
 
 ### Added

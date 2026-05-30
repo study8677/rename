@@ -5,13 +5,15 @@ privacy are a first-class concern.
 
 ## What retitle does with your data
 
-- **Runs entirely on your machine.** With the default `heuristic` namer, nothing
-  ever leaves your computer. There is no telemetry, ever.
-- **Only changes titles.** It appends or updates a single title field per session
-  and never edits, deletes, or reorders your conversations.
-- **Network only on opt-in.** The `anthropic` / `openai` namers send a short
-  transcript excerpt to that API *only if you set an API key*; the `claude` /
-  `codex` namers go through CLIs you have already authorized.
+- **No telemetry, ever, and it only changes titles.** retitle never phones home;
+  it appends or updates a single title field per session and never edits, deletes,
+  or reorders your conversations.
+- **Titling uses your own logged-in CLI by default.** The default `auto` namer
+  asks the `claude` / `codex` tool you're already signed into to write the title,
+  so a short transcript excerpt is sent through that provider — there is no API
+  key to paste. The `anthropic` / `openai` namers do the same via a key you set.
+- **Fully offline option.** Set `namer = "heuristic"` and nothing ever leaves
+  your machine.
 - **Conservative writes.** Reads use read-only SQLite connections; writes use a
   busy timeout and a single atomic transaction; it only ever touches *idle*
   sessions.

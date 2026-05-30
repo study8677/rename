@@ -26,9 +26,19 @@ class CliNamer(Namer):
 
     def _argv(self, prompt: str) -> list[str]:
         if self.name == "codex":
-            return ["codex", "exec", prompt]
-        # claude headless: prints the response text to stdout
-        return ["claude", "-p", prompt]
+            argv = ["codex", "exec"]
+            model = self.options.get("model")
+            if model:
+                argv += ["-m", str(model)]
+            argv.append(prompt)
+            return argv
+        # claude headless; default to the fast, cheap Haiku model for titling.
+        argv = ["claude"]
+        model = self.options.get("model", "haiku")
+        if model:
+            argv += ["--model", str(model)]
+        argv += ["-p", prompt]
+        return argv
 
     def generate(self, messages, *, old_title=None, cwd=None, tool=None):
         excerpt = build_excerpt(messages)

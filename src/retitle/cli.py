@@ -174,9 +174,11 @@ def cmd_status(args) -> int:
             pass
     print(f"  state  : {sp}  ({tracked} tracked)")
     print(f"  log    : {util.log_path()}")
+    resolved = get_namer(cfg).name
+    namer_str = cfg.namer if resolved == cfg.namer else f"{cfg.namer} → {resolved}"
     print(
         f"  config : idle={util.fmt_dur(cfg.idle_seconds)}  "
-        f"poll={util.fmt_dur(cfg.poll_seconds)}  namer={cfg.namer}"
+        f"poll={util.fmt_dur(cfg.poll_seconds)}  namer={namer_str}"
     )
     print(f"  {service.status_line()}")
 

@@ -99,8 +99,10 @@ For each discovered session, in order:
 - **Failure isolation.** If an adapter's `discover()` throws (e.g. a briefly
   locked DB), its state is *not* pruned, so a transient error can never cause the
   next pass to clobber a hand-edited title.
-- **Local by default.** With the default `heuristic` namer, nothing leaves your
-  machine. See [SECURITY.md](SECURITY.md).
+- **Titling via your own logged-in CLI by default.** The default `auto` namer
+  reuses the `claude`/`codex` CLI you're signed into (no API key); a short excerpt
+  goes to that provider. Set `namer = "heuristic"` for a fully offline run. See
+  [SECURITY.md](SECURITY.md).
 
 ## Adding a tool
 

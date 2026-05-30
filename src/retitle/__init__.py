@@ -6,4 +6,4 @@ content. Conversations drift; their titles shouldn't stay frozen on the first
 message you ever sent.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

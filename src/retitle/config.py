@@ -24,13 +24,16 @@ poll_seconds = 60
 # Which tools to manage. Remove any you don't use.
 tools = ["claude-code", "codex", "cursor"]
 
-# How titles are generated:
-#   "heuristic" - instant, offline, no API key, no token cost (default)
-#   "claude"    - shell out to the `claude` CLI (uses your existing login)
-#   "codex"     - shell out to the `codex` CLI (uses your existing login)
+# How titles are generated. The default needs NO API key.
+#   "auto"      - reuse the `claude` or `codex` CLI you're already logged into
+#                 for good titles (no API key!); falls back to "heuristic" if
+#                 neither is installed. (default)
+#   "heuristic" - instant, fully offline, no LLM, no token cost
+#   "claude"    - always use the `claude` CLI (defaults to the fast Haiku model)
+#   "codex"     - always use the `codex` CLI
 #   "anthropic" - Anthropic API, needs ANTHROPIC_API_KEY
 #   "openai"    - OpenAI API, needs OPENAI_API_KEY
-namer = "heuristic"
+namer = "auto"
 
 # Ignore sessions whose last activity is older than this many days.
 max_age_days = 7
@@ -54,7 +57,7 @@ class Config:
     idle_seconds: int = 300
     poll_seconds: int = 60
     tools: tuple[str, ...] = ALL_TOOLS
-    namer: str = "heuristic"
+    namer: str = "auto"
     max_age_days: int = 7
     min_user_messages: int = 1
     dry_run: bool = False
