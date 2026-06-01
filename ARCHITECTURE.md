@@ -108,3 +108,30 @@ For each discovered session, in order:
 
 Implement the four-method `Adapter` contract and register it. See
 [CONTRIBUTING.md](CONTRIBUTING.md) — it's usually one small file.
+
+### Investigated, currently blocked
+
+#### Antigravity (Google) — encrypted at rest
+
+Asked in [#1](https://github.com/study8677/retitle/issues/1). We mapped Antigravity's
+on-disk layout and found:
+
+- Conversations live one-per-file at `~/.gemini/antigravity/conversations/<uuid>.pb`.
+- The content is **encrypted**: byte frequencies are uniform across files and the leading
+  bytes don't cluster — the signature of an authenticated cipher with a per-file
+  nonce/IV (AES-GCM or ChaCha20-Poly1305), not raw protobuf or compression.
+- Annotations (`~/.gemini/antigravity/annotations/<uuid>.pbtxt`) only carry
+  `last_user_view_time` — no title.
+- The VS Code-style `state.vscdb` files
+  (`~/Library/Application Support/Antigravity/User/**/state.vscdb` on macOS) don't
+  hold conversation titles either; `chat.ChatSessionStore.index` is empty in the
+  installs we sampled.
+- The encryption key is presumably held in the OS keychain by the running app; sidebar
+  titles are decrypted in-process and never persisted in cleartext.
+
+Net effect: the four-method adapter contract has nothing to bind to. `read_transcript`
+would need the key to make sense of the `.pb`, and `set_title` has no plaintext title
+column to update. So unlike Claude Code / Codex / Cursor — whose formats are
+reverse-engineerable JSONL or SQLite — Antigravity needs either an official extension
+hook from Google or a documented decryption path before an adapter is feasible. PRs
+welcome.

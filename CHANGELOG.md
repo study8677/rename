@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Docs
+- Document why Antigravity (Google) isn't supported yet: its on-disk conversations are
+  encrypted with a key held by the OS keychain, so an adapter can neither read a
+  transcript nor write a title back without breaking encryption. See README and
+  ARCHITECTURE for the full investigation. Tracking in
+  [#1](https://github.com/study8677/retitle/issues/1).
+
 ## [0.4.1] - 2026-05-30
 
 ### Fixed

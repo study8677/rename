@@ -173,6 +173,7 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 | **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | appends an `ai-title` line (append-only — the safest write) | ✅ stable |
 | **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
 | **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
+| **Antigravity** *(Google)* | conversations live at `~/.gemini/antigravity/conversations/<uuid>.pb` — **encrypted at rest** | — | 🚫 [blocked](#why-not-antigravity-yet) |
 
 > **A note on writing while the app is open.** Codex and Cursor keep their data in live SQLite
 > databases. `retitle` writes carefully (read-only reads, `busy_timeout` on writes), and only
@@ -180,6 +181,20 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 > you change on disk may be overwritten if you reopen that exact chat in a running Cursor. For
 > the most reliable Cursor results, let `retitle` run while Cursor is closed. Claude Code's
 > append-only format has no such caveat.
+
+### Why not Antigravity yet?
+
+Asked in [#1](https://github.com/study8677/retitle/issues/1). We investigated Google's
+Antigravity and the blocker is **at-rest encryption**, not work. Each conversation lives at
+`~/.gemini/antigravity/conversations/<uuid>.pb`, but the bytes are uniformly random — typical
+of an authenticated cipher (AES-GCM / ChaCha20-Poly1305) with the key held by the OS
+keychain. There is no plaintext title index next to the encrypted blobs (sidebar titles are
+decrypted in-process by the app). So unlike the other three tools, we can't currently *read*
+a transcript to generate a fresh title or *write* one back without breaking encryption.
+
+If you know Antigravity's storage format — or work on it — please open a PR or comment on
+the issue. The adapter layer is one file ([CONTRIBUTING.md](CONTRIBUTING.md)); the missing
+piece is just a documented way to read/write a conversation's title field.
 
 ---
 
