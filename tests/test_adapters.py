@@ -342,6 +342,53 @@ def test_antigravity_discover_and_set_title(tmp_path, monkeypatch):
     assert by_id2[uid_b].title == "Old B"
 
 
+def test_antigravity_read_transcript_from_brain(tmp_path, monkeypatch):
+    """When brain artifacts exist, we feed them to the namer as user messages."""
+    uid = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+    db = _ag_make_db(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="stale", trajectory_id=uid, last_user_input=1))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+
+    brain = tmp_path / "brain" / uid
+    brain.mkdir(parents=True)
+    (brain / "task.md.metadata.json").write_text(
+        json.dumps(
+            {
+                "artifactType": "ARTIFACT_TYPE_TASK",
+                "summary": "Migrate auth middleware to use the new JWT signer.",
+                "updatedAt": "2026-06-01T00:00:00Z",
+            }
+        )
+    )
+    (brain / "task.md").write_text(
+        "# Task\n\nMigrate the auth middleware away from the legacy HMAC signer.\n"
+    )
+    monkeypatch.setattr(antigravity, "_BRAIN_DIR", tmp_path / "brain")
+
+    adapter = antigravity.AntigravityAdapter()
+    s = adapter.discover(0)[0]
+    msgs = adapter.read_transcript(s)
+    assert msgs, "brain artifacts should produce a non-empty transcript"
+    joined = " ".join(m.text for m in msgs)
+    assert "JWT signer" in joined or "HMAC signer" in joined
+    assert all(m.role == "user" for m in msgs)
+
+
+def test_antigravity_read_transcript_empty_when_no_brain(tmp_path, monkeypatch):
+    uid = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    db = _ag_make_db(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="no brain", trajectory_id=uid, last_user_input=1))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    monkeypatch.setattr(antigravity, "_BRAIN_DIR", tmp_path / "brain")  # missing dir
+    adapter = antigravity.AntigravityAdapter()
+    s = adapter.discover(0)[0]
+    assert adapter.read_transcript(s) == []
+
+
 def test_antigravity_set_title_unicode(tmp_path, monkeypatch):
     uid = "cccccccc-cccc-cccc-cccc-cccccccccccc"
     db = _ag_make_db(

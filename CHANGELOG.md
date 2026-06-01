@@ -12,16 +12,16 @@ All notable changes to this project are documented here. Format loosely follows
   blob (base64 → protobuf → base64 → CascadeTrajectorySummary). Schema
   reverse-engineered from Antigravity 2.0's bundled `FileDescriptorProto`.
   Encoder/decoder in `adapters/_proto.py` (stdlib only, ~80 lines).
-- Closes the path described in [#1](https://github.com/study8677/retitle/issues/1):
-  conversation transcripts are still encrypted at rest, but titles live in a
-  separate plaintext SQLite store, so list/search/manual-rename work without
-  any decryption.
-
-### Notes
-- The engine's substance gate skips Antigravity in the *automatic* rename loop
-  (we can't read the encrypted transcript, so we have nothing better than what
-  Antigravity already auto-titles). `retitle once --tool antigravity` lets you
-  rename one manually; `retitle list` / `search` / `stats` show them.
+- **Auto-rename works for Antigravity too.** Although raw chat transcripts are
+  encrypted, Antigravity's agent writes plain-text working artifacts to
+  `~/.gemini/antigravity/brain/<uuid>/` (`task.md`,
+  `implementation_plan.md`, `walkthrough.md`, plus `*.metadata.json`
+  summaries). `read_transcript` feeds those to the namer, so any conversation
+  with brain artifacts gets a fresh title in the daemon loop just like the
+  other three tools. On a sample install ≈35% of conversations had artifacts.
+- Closes [#1](https://github.com/study8677/retitle/issues/1). Thanks to
+  [@xiongaox](https://github.com/xiongaox) for filing it — the issue is what
+  unlocked the whole Antigravity adapter.
 
 ## [0.4.1] - 2026-05-30
 

@@ -23,25 +23,27 @@ Antigravity 2.0's bundled file descriptor):
           …                                  # plus more metadata fields
         }
 
-Conversation transcripts themselves live in ``~/.gemini/antigravity/
-conversations/<uuid>.pb`` and are encrypted at rest, so ``read_transcript``
-returns no messages — see *Limitations* below. The summaries store is plaintext
-inside the SQLite, so listing, searching and (if you ever want to) writing a
-new title work without breaking encryption.
+Conversation transcripts (the chat messages themselves) live at
+``~/.gemini/antigravity/conversations/<uuid>.pb`` and are encrypted at rest,
+so we never see the raw chat. But Antigravity's agent ALSO writes plain-text
+working artifacts to ``~/.gemini/antigravity/brain/<uuid>/`` while it works
+— ``task.md``, ``implementation_plan.md``, ``walkthrough.md``, etc., each
+with a ``*.metadata.json`` sidecar carrying a human-readable ``summary``.
+``read_transcript`` feeds those to the namer, which is enough material to
+produce a fresh title when Antigravity's own auto-title has gone stale.
 
-Limitations:
-  * We never see conversation content. The engine's substance gate skips these
-    sessions in the rename loop by default — Antigravity already auto-titles
-    its own conversations, and we have nothing better to offer without the
-    transcript. ``retitle list / search / stats`` still include them.
-  * ``trajectorySummaries`` is a *synced* store (`unifiedStateSync`). A local
-    write may be overwritten by cloud sync, or get pushed to other devices.
-    Treat ``set_title`` as best-effort while Antigravity is running.
+Caveats:
+  * ``trajectorySummaries`` is a *synced* store (``unifiedStateSync``). A
+    local write may be overwritten by cloud sync, or get pushed to other
+    devices. Treat ``set_title`` as best-effort while Antigravity is running.
+  * Conversations that haven't produced brain artifacts yet (early/short
+    chats) yield no transcript — the substance gate will skip those.
 """
 
 from __future__ import annotations
 
 import base64
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -52,6 +54,12 @@ from ._sqlite import connect_read, connect_write
 from .base import Adapter
 
 _KEY = "antigravityUnifiedStateSync.trajectorySummaries"
+_BRAIN_DIR = Path.home() / ".gemini/antigravity/brain"
+
+# Per-artifact and total caps so a giant implementation_plan.md doesn't blow
+# the namer's prompt budget. The namer's build_excerpt also trims further.
+_MAX_MD_CHARS = 1200
+_MAX_MSGS = 12
 
 # CascadeTrajectorySummary field numbers — see the docstring at the top.
 _F_SUMMARY = 1
@@ -265,13 +273,48 @@ class AntigravityAdapter(Adapter):
         return out
 
     def read_transcript(self, session: Session) -> list[Message]:
-        # Conversation content lives in encrypted ~/.gemini/antigravity/
-        # conversations/<uuid>.pb files. Without the key, we have no transcript
-        # to feed the namer — so we return nothing. The engine's substance gate
-        # then skips Antigravity sessions in the rename loop, which is what we
-        # want: Antigravity already auto-titles, we don't clobber. See module
-        # docstring.
-        return []
+        # The raw chat is encrypted (see module docstring), but Antigravity's
+        # agent leaves plain-text working artifacts in
+        # ~/.gemini/antigravity/brain/<uuid>/. Use those as the transcript so
+        # the namer has real material when Antigravity's own auto-title goes
+        # stale. Each artifact's .metadata.json carries a short ``summary``;
+        # the .md alongside is the full document. We treat them as ``user``
+        # turns so the heuristic namer (which only inspects user messages) can
+        # use them too.
+        brain = _BRAIN_DIR / session.id
+        if not brain.is_dir():
+            return []
+
+        msgs: list[Message] = []
+
+        # 1) Short, agent-authored summaries first — high signal density.
+        for meta in sorted(brain.glob("*.metadata.json")):
+            try:
+                data = json.loads(meta.read_text("utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            summary = (data.get("summary") or "").strip()
+            if not summary:
+                continue
+            kind = (data.get("artifactType") or "").removeprefix("ARTIFACT_TYPE_").lower()
+            label = kind or meta.name.removesuffix(".metadata.json")
+            msgs.append(Message(role="user", text=f"[{label}] {summary}"))
+
+        # 2) Full markdown bodies — fuller context for LLM namers.
+        for md in sorted(brain.glob("*.md")):
+            if md.name.endswith(".metadata.json"):
+                continue
+            try:
+                text = md.read_text("utf-8", errors="replace").strip()
+            except OSError:
+                continue
+            if not text:
+                continue
+            if len(text) > _MAX_MD_CHARS:
+                text = text[:_MAX_MD_CHARS].rstrip() + "…"
+            msgs.append(Message(role="user", text=text))
+
+        return msgs[-_MAX_MSGS:]
 
     def set_title(self, session: Session, title: str) -> None:
         db = session.meta["db"]

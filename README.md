@@ -192,18 +192,21 @@ ciphertext, key held by the OS keychain). But its sidebar reads titles from a se
 `state.vscdb` — same pattern as Cursor.
 
 `retitle` reads and rewrites that store directly (SQL `UPDATE`, no extension, no key
-extraction), so:
+extraction). And while the raw chat is encrypted, Antigravity's agent itself writes
+plain-text working artifacts to `~/.gemini/antigravity/brain/<uuid>/` while it works
+(`task.md`, `implementation_plan.md`, `walkthrough.md` and matching `*.metadata.json`
+summaries) — those are the material `retitle` feeds to the namer.
 
 - ✅ Antigravity sessions show up in `retitle list`, `retitle search`, `retitle stats`
-- ✅ `retitle once --tool antigravity` can rename a session (its UI sidebar will pick up the
-  change on next refresh)
-- ⚠️ We can't *generate* a fresh title with the LLM-based namers, because the transcript
-  bytes are encrypted. The engine's substance gate therefore skips Antigravity in the
-  automatic rename loop — Antigravity already auto-titles its own conversations, and we'd
-  have nothing better to offer without the transcript.
+- ✅ Automatic rename works for any conversation that has produced brain artifacts
+  (longer / planning-heavy chats — the ones whose title most often drifts). Short
+  chats with no artifacts are skipped by the substance gate, which is fine — there'd
+  be nothing to title with anyway.
+- ✅ Manual `retitle once --tool antigravity` works regardless.
 
-If Antigravity ever ships an extension API for chat-session transcripts, we'll wire it in.
-Track at [#1](https://github.com/study8677/retitle/issues/1).
+If Antigravity ships an extension API exposing raw chat-session transcripts later,
+we'll wire it in for full coverage. Track at
+[#1](https://github.com/study8677/retitle/issues/1).
 
 ---
 
@@ -319,6 +322,13 @@ pytest
 
 Your AI sessions are an asset worth keeping. If `retitle` helps you reclaim yours, a ⭐ helps
 other people find it — and motivates more adapters (Aider, Continue, Zed, …). Issues and PRs welcome.
+
+## Acknowledgments
+
+- **[@xiongaox](https://github.com/xiongaox)** filed [#1](https://github.com/study8677/retitle/issues/1)
+  asking for Antigravity support. That issue is what unlocked the whole Antigravity adapter —
+  the protobuf schema reverse-engineering, the `brain/` artifacts discovery, all of it.
+  Thank you 🙏.
 
 ## License
 

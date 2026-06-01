@@ -183,15 +183,19 @@ Antigravity 是 VS Code 的分支。它的对话正文存在
 `state.vscdb` 的 `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` 这一行
 读,里面是一个 base64-protobuf,**标题以明文存放**——和 Cursor 完全是同一个模式。
 
-`retitle` 直接 SQL `UPDATE` 这一行(不解密、不写扩展、不动 keychain),所以:
+`retitle` 直接 SQL `UPDATE` 这一行(不解密、不写扩展、不动 keychain)。虽然对话正文加密,
+但 Antigravity 的 agent 在工作时会把自己写的明文工作文档放在
+`~/.gemini/antigravity/brain/<uuid>/` 下(`task.md`、`implementation_plan.md`、
+`walkthrough.md`,以及对应的 `*.metadata.json` 摘要)——这些就是 `retitle` 喂给 namer
+用来重新起标题的素材。
 
 - ✅ Antigravity 的对话会出现在 `retitle list` / `retitle search` / `retitle stats` 里
-- ✅ `retitle once --tool antigravity` 可以手动改名(UI 下次刷新会读到新标题)
-- ⚠️ **没法**让 LLM namer 自动生成新标题——对话正文还在加密 `.pb` 里。所以引擎的「实质内容」
-  闸门默认会**跳过** Antigravity:Antigravity 本身已经会给对话自动改名,我们没有更多的
-  对话内容能拿来生成更好的标题。
+- ✅ **自动改名**对所有产生过 brain artifact 的对话都生效(也就是那些长一点、有计划文档的
+  会话——标题最容易跑偏的就是这一类)。短对话还没生成 artifact 的会被「实质内容」闸门跳过,
+  这是合理的——没素材也起不了名字。
+- ✅ `retitle once --tool antigravity` 手动改名任何时候都能用。
 
-如果以后 Antigravity 出了官方扩展 API 暴露对话正文,我们就把读取那一边接上。
+如果以后 Antigravity 出了官方扩展 API 直接暴露对话正文,我们再把那一层接上做全覆盖。
 跟进:[#1](https://github.com/study8677/retitle/issues/1).
 
 ---
@@ -303,6 +307,12 @@ pytest
 
 你的 AI 会话是一笔值得守护的财富。如果 retitle 帮你把它捡了回来，点个 ⭐ 能帮更多人发现它，
 也会激励我适配更多工具（Aider、Continue、Zed……）。欢迎提 issue 和 PR。
+
+## 致谢
+
+- **[@xiongaox](https://github.com/xiongaox)** 提出了 [#1](https://github.com/study8677/retitle/issues/1)
+  要求支持 Antigravity——正是这个 issue 推着我把整套 Antigravity 适配器做了出来:从反编译
+  protobuf schema,到发现 `brain/` 明文素材,全都源自这个起点。谢谢 🙏。
 
 ## 许可证
 
