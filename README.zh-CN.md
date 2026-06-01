@@ -167,26 +167,32 @@ retitle once --all --dry-run   # 预览整个积压，不写入
 | **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | 追加一行 `ai-title`（纯追加——最安全的写法） | ✅ 稳定 |
 | **Codex** | `~/.codex/state_*.sqlite` + rollout 文件 | `UPDATE threads SET title` | ✅ 稳定 |
 | **Cursor** | `state.vscdb`（`composerHeaders` + `composerData`） | 同时更新两处标题字段 | ⚠️ 实验性 |
-| **Antigravity** *(Google)* | 对话存在 `~/.gemini/antigravity/conversations/<uuid>.pb` —— **磁盘上是加密的** | — | 🚫 [阻塞](#为什么还不支持-antigravity) |
+| **Antigravity** *(Google)* | `state.vscdb`（`antigravityUnifiedStateSync.trajectorySummaries`） | 重写对应 `CascadeTrajectorySummary` 的 `summary` 字段 | ⚠️ 实验性 — [只支持手动改名](#antigravity-说明) |
 
-> **关于「应用开着时写入」。** Codex 和 Cursor 把数据存在正在使用的 SQLite 数据库里。
-> `retitle` 写入很谨慎（读取走只读连接、写入设了 `busy_timeout`），而且只碰*空闲*会话。
-> 但 Cursor 尤其会把对话缓存在内存里，所以你在磁盘上改的标题，可能在你重新打开那个对话时
-> 被运行中的 Cursor 覆盖。想让 Cursor 端结果最可靠，就在 Cursor 关闭时让 `retitle` 跑。
-> Claude Code 的纯追加格式没有这个顾虑。
+> **关于「应用开着时写入」。** Codex、Cursor 和 Antigravity 都把数据存在正在使用的 SQLite
+> 数据库里。`retitle` 写入很谨慎（读取走只读连接、写入设了 `busy_timeout`），而且只碰
+> *空闲*会话。但宿主 App 会把对话缓存在内存里，所以你在磁盘上改的标题，可能在你重新打开
+> 那个对话时被运行中的 App 覆盖。想让结果最可靠，就在 App 关闭时让 `retitle` 跑。Claude
+> Code 的纯追加格式没有这个顾虑。
 
-### 为什么还不支持 Antigravity？
+### Antigravity 说明
 
-[#1](https://github.com/study8677/retitle/issues/1) 提出了这个问题。我们调查过 Google
-的 Antigravity，**阻塞的不是工作量，而是落盘加密**。每个对话存在
-`~/.gemini/antigravity/conversations/<uuid>.pb`，但内容是均匀分布的随机字节——典型的
-带认证密文（AES-GCM / ChaCha20-Poly1305）特征，密钥由系统 keychain 托管。加密文件旁
-没有任何明文标题索引（侧边栏的标题是 App 在进程内解密出来的）。所以和另外三个工具不
-同，我们暂时既不能*读*对话来生成新标题，也不能*写*回去——除非破开加密。
+Antigravity 是 VS Code 的分支。它的对话正文存在
+`~/.gemini/antigravity/conversations/<uuid>.pb`，**磁盘上是加密的**（字节分布完全均匀，
+密钥由系统 keychain 托管）。但**侧边栏显示的标题不在那里读**——它从
+`state.vscdb` 的 `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` 这一行
+读,里面是一个 base64-protobuf,**标题以明文存放**——和 Cursor 完全是同一个模式。
 
-如果你了解 Antigravity 的存储格式——或者你就在它的团队——欢迎提 PR 或在 issue 下评论。
-适配器只是一个文件（详见 [CONTRIBUTING.md](CONTRIBUTING.md)），现在缺的只是**一种能
-读写对话标题的方法**。
+`retitle` 直接 SQL `UPDATE` 这一行(不解密、不写扩展、不动 keychain),所以:
+
+- ✅ Antigravity 的对话会出现在 `retitle list` / `retitle search` / `retitle stats` 里
+- ✅ `retitle once --tool antigravity` 可以手动改名(UI 下次刷新会读到新标题)
+- ⚠️ **没法**让 LLM namer 自动生成新标题——对话正文还在加密 `.pb` 里。所以引擎的「实质内容」
+  闸门默认会**跳过** Antigravity:Antigravity 本身已经会给对话自动改名,我们没有更多的
+  对话内容能拿来生成更好的标题。
+
+如果以后 Antigravity 出了官方扩展 API 暴露对话正文,我们就把读取那一边接上。
+跟进:[#1](https://github.com/study8677/retitle/issues/1).
 
 ---
 

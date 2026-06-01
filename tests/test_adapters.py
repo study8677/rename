@@ -3,13 +3,14 @@
 These also exercise the write path (set_title) without touching any real data.
 """
 
+import base64
 import json
 import sqlite3
 import time
 
 import pytest
 
-from retitle.adapters import claude_code, codex, cursor
+from retitle.adapters import _proto, antigravity, claude_code, codex, cursor
 
 
 # --------------------------------------------------------------------------- #
@@ -249,6 +250,153 @@ def test_cursor_set_title_corrupt_blob_rolls_back(tmp_path, monkeypatch):
     with pytest.raises(Exception):
         adapter.set_title(s, "New")
     assert _header_name(db, cid) == "Old"  # atomic: header untouched
+
+
+# --------------------------------------------------------------------------- #
+# Antigravity
+# --------------------------------------------------------------------------- #
+def _ag_encode_timestamp(seconds: int, nanos: int = 0) -> bytes:
+    return _proto.encode_len_field(
+        3,  # placeholder field — actual field number set by caller
+        b"",
+    )  # not used directly; we use _ag_inline_timestamp below
+
+
+def _ag_timestamp_payload(seconds: int, nanos: int = 0) -> bytes:
+    """The bytes inside a Timestamp message: seconds @ 1, nanos @ 2."""
+    out = bytearray()
+    if seconds:
+        out += _proto.write_varint((1 << 3) | _proto.WIRE_VARINT)
+        out += _proto.write_varint(seconds)
+    if nanos:
+        out += _proto.write_varint((2 << 3) | _proto.WIRE_VARINT)
+        out += _proto.write_varint(nanos)
+    return bytes(out)
+
+
+def _ag_make_summary(*, summary: str, trajectory_id: str, last_user_input: int) -> bytes:
+    """Build a minimal CascadeTrajectorySummary payload."""
+    out = bytearray()
+    # Field numbers from CascadeTrajectorySummary
+    out += _proto.encode_len_field(1, summary.encode("utf-8"))  # summary
+    out += _proto.encode_len_field(4, trajectory_id.encode("ascii"))  # trajectory_id
+    out += _proto.encode_len_field(10, _ag_timestamp_payload(last_user_input))
+    return bytes(out)
+
+
+def _ag_make_envelope(entries: list[tuple[str, bytes]]) -> str:
+    """Build the base64-encoded TrajectorySummariesUpdate envelope."""
+    out = bytearray()
+    for uid, inner_bytes in entries:
+        # ValueWrapper { value @ 1 = base64(inner) }
+        wrapper = _proto.encode_len_field(1, base64.b64encode(inner_bytes))
+        # TopEntry { key @ 1 = uuid; value @ 2 = wrapper }
+        entry = (
+            _proto.encode_len_field(1, uid.encode("ascii"))
+            + _proto.encode_len_field(2, wrapper)
+        )
+        # Envelope: repeated TopEntry @ field 1
+        out += _proto.encode_len_field(1, entry)
+    return base64.b64encode(bytes(out)).decode("ascii")
+
+
+def _ag_make_db(tmp_path, entries):
+    db = tmp_path / "state.vscdb"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE ItemTable (key TEXT PRIMARY KEY, value TEXT)")
+    con.execute(
+        "INSERT INTO ItemTable VALUES (?,?)",
+        ("antigravityUnifiedStateSync.trajectorySummaries", _ag_make_envelope(entries)),
+    )
+    con.commit()
+    con.close()
+    return db
+
+
+def test_antigravity_discover_and_set_title(tmp_path, monkeypatch):
+    uid_a = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    uid_b = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    now = int(time.time())
+    entries = [
+        (uid_a, _ag_make_summary(summary="Old A", trajectory_id=uid_a, last_user_input=now - 100)),
+        (uid_b, _ag_make_summary(summary="Old B", trajectory_id=uid_b, last_user_input=now - 50)),
+    ]
+    db = _ag_make_db(tmp_path, entries)
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    adapter = antigravity.AntigravityAdapter()
+
+    assert adapter.available() is True
+    sessions = adapter.discover(0)
+    by_id = {s.id: s for s in sessions}
+    assert set(by_id) == {uid_a, uid_b}
+    assert by_id[uid_a].title == "Old A"
+    assert by_id[uid_b].title == "Old B"
+    assert abs(by_id[uid_a].last_active - (now - 100)) < 1
+    assert adapter.read_transcript(by_id[uid_a]) == []  # encrypted — no transcript
+
+    # Rename A; B must remain untouched.
+    adapter.set_title(by_id[uid_a], "Renamed A")
+    sessions2 = adapter.discover(0)
+    by_id2 = {s.id: s for s in sessions2}
+    assert by_id2[uid_a].title == "Renamed A"
+    assert by_id2[uid_b].title == "Old B"
+
+
+def test_antigravity_set_title_unicode(tmp_path, monkeypatch):
+    uid = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    db = _ag_make_db(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="x", trajectory_id=uid, last_user_input=int(time.time())))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    adapter = antigravity.AntigravityAdapter()
+    s = adapter.discover(0)[0]
+    adapter.set_title(s, "修复登录页面 ✨")
+    s2 = adapter.discover(0)[0]
+    assert s2.title == "修复登录页面 ✨"
+
+
+def test_antigravity_unavailable_when_no_db(tmp_path, monkeypatch):
+    # An empty tmp dir has no state.vscdb
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    adapter = antigravity.AntigravityAdapter()
+    assert adapter.available() is False
+    assert adapter.discover(0) == []
+
+
+def test_antigravity_survives_malformed_envelope(tmp_path, monkeypatch):
+    db = tmp_path / "state.vscdb"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE ItemTable (key TEXT PRIMARY KEY, value TEXT)")
+    con.execute(
+        "INSERT INTO ItemTable VALUES (?,?)",
+        ("antigravityUnifiedStateSync.trajectorySummaries", "not-base64-at-all!!!"),
+    )
+    con.commit()
+    con.close()
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    assert antigravity.AntigravityAdapter().discover(0) == []
+
+
+def test_antigravity_set_title_unknown_id_rolls_back(tmp_path, monkeypatch):
+    uid = "11111111-1111-1111-1111-111111111111"
+    other = "22222222-2222-2222-2222-222222222222"
+    entries = [
+        (uid, _ag_make_summary(summary="Only one", trajectory_id=uid, last_user_input=1))
+    ]
+    db = _ag_make_db(tmp_path, entries)
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    adapter = antigravity.AntigravityAdapter()
+    # Real session present, but we pass a Session with a different id
+    from retitle.models import Session
+
+    s = Session(tool="antigravity", id=other, title="X", last_active=0, meta={"db": str(db)})
+    # Our rewrite is a no-op when the target isn't found, but the UPDATE still
+    # runs — the file content is byte-identical, which is fine: the existing
+    # entry's title stays "Only one".
+    adapter.set_title(s, "Should not appear")
+    sessions = adapter.discover(0)
+    assert sessions[0].title == "Only one"
 
 
 # --------------------------------------------------------------------------- #

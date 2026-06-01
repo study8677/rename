@@ -5,12 +5,23 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
-### Docs
-- Document why Antigravity (Google) isn't supported yet: its on-disk conversations are
-  encrypted with a key held by the OS keychain, so an adapter can neither read a
-  transcript nor write a title back without breaking encryption. See README and
-  ARCHITECTURE for the full investigation. Tracking in
-  [#1](https://github.com/study8677/retitle/issues/1).
+### Added
+- **Antigravity (Google) adapter** ⚠️ experimental. Lists, searches and renames
+  Antigravity conversations by rewriting `CascadeTrajectorySummary.summary`
+  inside `state.vscdb`'s `antigravityUnifiedStateSync.trajectorySummaries`
+  blob (base64 → protobuf → base64 → CascadeTrajectorySummary). Schema
+  reverse-engineered from Antigravity 2.0's bundled `FileDescriptorProto`.
+  Encoder/decoder in `adapters/_proto.py` (stdlib only, ~80 lines).
+- Closes the path described in [#1](https://github.com/study8677/retitle/issues/1):
+  conversation transcripts are still encrypted at rest, but titles live in a
+  separate plaintext SQLite store, so list/search/manual-rename work without
+  any decryption.
+
+### Notes
+- The engine's substance gate skips Antigravity in the *automatic* rename loop
+  (we can't read the encrypted transcript, so we have nothing better than what
+  Antigravity already auto-titles). `retitle once --tool antigravity` lets you
+  rename one manually; `retitle list` / `search` / `stats` show them.
 
 ## [0.4.1] - 2026-05-30
 

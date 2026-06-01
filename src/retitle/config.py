@@ -9,7 +9,7 @@ from typing import Any
 
 from . import util
 
-ALL_TOOLS = ("claude-code", "codex", "cursor")
+ALL_TOOLS = ("claude-code", "codex", "cursor", "antigravity")
 
 DEFAULT_TOML = """\
 # retitle configuration — https://github.com/study8677/retitle
@@ -27,7 +27,10 @@ poll_seconds = 60
 batch_size = 25
 
 # Which tools to manage. Remove any you don't use.
-tools = ["claude-code", "codex", "cursor"]
+# "antigravity" is read-only for naming (its transcripts are encrypted at rest)
+# but is listed/searched alongside the others — drop it if you don't want it in
+# `retitle list` / `retitle search` / `retitle stats`.
+tools = ["claude-code", "codex", "cursor", "antigravity"]
 
 # How titles are generated. The default needs NO API key.
 #   "auto"      - reuse the `claude` or `codex` CLI you're already logged into

@@ -173,28 +173,37 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 | **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | appends an `ai-title` line (append-only — the safest write) | ✅ stable |
 | **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
 | **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
-| **Antigravity** *(Google)* | conversations live at `~/.gemini/antigravity/conversations/<uuid>.pb` — **encrypted at rest** | — | 🚫 [blocked](#why-not-antigravity-yet) |
+| **Antigravity** *(Google)* | `state.vscdb` (`antigravityUnifiedStateSync.trajectorySummaries`) | rewrites the `summary` field of one `CascadeTrajectorySummary` | ⚠️ experimental — [read-only naming](#antigravity-notes) |
 
-> **A note on writing while the app is open.** Codex and Cursor keep their data in live SQLite
-> databases. `retitle` writes carefully (read-only reads, `busy_timeout` on writes), and only
-> ever touches *idle* sessions. Still, Cursor in particular caches chats in memory, so a title
-> you change on disk may be overwritten if you reopen that exact chat in a running Cursor. For
-> the most reliable Cursor results, let `retitle` run while Cursor is closed. Claude Code's
-> append-only format has no such caveat.
+> **A note on writing while the app is open.** Codex, Cursor and Antigravity keep their data
+> in live SQLite databases. `retitle` writes carefully (read-only reads, `busy_timeout` on
+> writes), and only ever touches *idle* sessions. Still, the host apps cache chats in memory,
+> so a title you change on disk may be overwritten if you reopen that exact chat in the
+> running app. For the most reliable results, let `retitle` run while the app is closed.
+> Claude Code's append-only format has no such caveat.
 
-### Why not Antigravity yet?
+### Antigravity notes
 
-Asked in [#1](https://github.com/study8677/retitle/issues/1). We investigated Google's
-Antigravity and the blocker is **at-rest encryption**, not work. Each conversation lives at
-`~/.gemini/antigravity/conversations/<uuid>.pb`, but the bytes are uniformly random — typical
-of an authenticated cipher (AES-GCM / ChaCha20-Poly1305) with the key held by the OS
-keychain. There is no plaintext title index next to the encrypted blobs (sidebar titles are
-decrypted in-process by the app). So unlike the other three tools, we can't currently *read*
-a transcript to generate a fresh title or *write* one back without breaking encryption.
+Antigravity is a VS Code fork. Its conversation transcripts live at
+`~/.gemini/antigravity/conversations/<uuid>.pb` and are **encrypted at rest** (uniform-byte
+ciphertext, key held by the OS keychain). But its sidebar reads titles from a separate,
+**plaintext** store: a base64-encoded protobuf at
+`ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` inside
+`state.vscdb` — same pattern as Cursor.
 
-If you know Antigravity's storage format — or work on it — please open a PR or comment on
-the issue. The adapter layer is one file ([CONTRIBUTING.md](CONTRIBUTING.md)); the missing
-piece is just a documented way to read/write a conversation's title field.
+`retitle` reads and rewrites that store directly (SQL `UPDATE`, no extension, no key
+extraction), so:
+
+- ✅ Antigravity sessions show up in `retitle list`, `retitle search`, `retitle stats`
+- ✅ `retitle once --tool antigravity` can rename a session (its UI sidebar will pick up the
+  change on next refresh)
+- ⚠️ We can't *generate* a fresh title with the LLM-based namers, because the transcript
+  bytes are encrypted. The engine's substance gate therefore skips Antigravity in the
+  automatic rename loop — Antigravity already auto-titles its own conversations, and we'd
+  have nothing better to offer without the transcript.
+
+If Antigravity ever ships an extension API for chat-session transcripts, we'll wire it in.
+Track at [#1](https://github.com/study8677/retitle/issues/1).
 
 ---
 

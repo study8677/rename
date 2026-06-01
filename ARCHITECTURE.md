@@ -65,6 +65,53 @@ not officially documented. Each adapter isolates the quirks below.
 - **Write:** both copies, in a single `BEGIN IMMEDIATE` transaction, with rollback
   on any error (see *Data-safety design*).
 
+### Antigravity  ⚠️ experimental — read-only for naming
+
+Antigravity (Google) is a VS Code fork with a Gemini-powered chat sidebar. It
+splits its data across two stores:
+
+- **Conversation transcripts** at `~/.gemini/antigravity/conversations/<uuid>.pb`
+  are **encrypted at rest** — uniform-byte ciphertext, key held by the OS
+  keychain. We cannot read them.
+- **Title + metadata index** lives in `state.vscdb`, key
+  `antigravityUnifiedStateSync.trajectorySummaries`. The value is a
+  base64-encoded protobuf with **plaintext titles**, reverse-engineered from
+  Antigravity 2.0's bundled `FileDescriptorProto` (search the JS bundle for
+  `CascadeTrajectorySummary` to see the canonical schema). Layered shape:
+
+  ```
+  Envelope                              # base64 → repeated field 1
+    TopEntry { key=uuid, value=Wrapper }
+      Wrapper { value @ 1 = base64(   # yes, base64 inside base64 — that's
+                  CascadeTrajectorySummary  # how unifiedStateSync stores it
+              ) }
+        CascadeTrajectorySummary {
+          string  summary @ 1                    # ← the title
+          uint32  step_count @ 2
+          Timestamp last_modified_time @ 3
+          string  trajectory_id @ 4
+          enum    status @ 5
+          Timestamp created_time @ 7
+          Workspaces workspaces @ 9
+          Timestamp last_user_input_time @ 10
+          …
+        }
+  ```
+
+- **Title:** `CascadeTrajectorySummary.summary` (field 1).
+- **Transcript:** we return `[]` — see above. The engine's substance gate then
+  skips Antigravity sessions in the rename loop, which is what we want
+  (Antigravity already auto-titles its own conversations). `retitle list` /
+  `search` / `stats` still surface them. Manual rename via
+  `retitle once --tool antigravity` works.
+- **Write:** rewrite the one matching `CascadeTrajectorySummary.summary` inside
+  the layered envelope and `UPDATE ItemTable` under `BEGIN IMMEDIATE`. The proto
+  is hand-encoded (varints + length-prefixed fields) in
+  [`_proto.py`](src/retitle/adapters/_proto.py) — zero deps, ~80 lines.
+- **Caveat:** `trajectorySummaries` is a synced store; a local write may be
+  overwritten by cloud sync or pushed to other devices. Treat as best-effort
+  while Antigravity is running.
+
 ## The rename decision
 
 For each discovered session, in order:
@@ -109,29 +156,3 @@ For each discovered session, in order:
 Implement the four-method `Adapter` contract and register it. See
 [CONTRIBUTING.md](CONTRIBUTING.md) — it's usually one small file.
 
-### Investigated, currently blocked
-
-#### Antigravity (Google) — encrypted at rest
-
-Asked in [#1](https://github.com/study8677/retitle/issues/1). We mapped Antigravity's
-on-disk layout and found:
-
-- Conversations live one-per-file at `~/.gemini/antigravity/conversations/<uuid>.pb`.
-- The content is **encrypted**: byte frequencies are uniform across files and the leading
-  bytes don't cluster — the signature of an authenticated cipher with a per-file
-  nonce/IV (AES-GCM or ChaCha20-Poly1305), not raw protobuf or compression.
-- Annotations (`~/.gemini/antigravity/annotations/<uuid>.pbtxt`) only carry
-  `last_user_view_time` — no title.
-- The VS Code-style `state.vscdb` files
-  (`~/Library/Application Support/Antigravity/User/**/state.vscdb` on macOS) don't
-  hold conversation titles either; `chat.ChatSessionStore.index` is empty in the
-  installs we sampled.
-- The encryption key is presumably held in the OS keychain by the running app; sidebar
-  titles are decrypted in-process and never persisted in cleartext.
-
-Net effect: the four-method adapter contract has nothing to bind to. `read_transcript`
-would need the key to make sense of the `.pb`, and `set_title` has no plaintext title
-column to update. So unlike Claude Code / Codex / Cursor — whose formats are
-reverse-engineerable JSONL or SQLite — Antigravity needs either an official extension
-hook from Google or a documented decryption path before an adapter is feasible. PRs
-welcome.

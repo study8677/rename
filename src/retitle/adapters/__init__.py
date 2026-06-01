@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .. import util
 from ..config import Config
+from .antigravity import AntigravityAdapter
 from .base import Adapter
 from .claude_code import ClaudeCodeAdapter
 from .codex import CodexAdapter
@@ -13,6 +14,7 @@ _REGISTRY: dict[str, type[Adapter]] = {
     ClaudeCodeAdapter.name: ClaudeCodeAdapter,
     CodexAdapter.name: CodexAdapter,
     CursorAdapter.name: CursorAdapter,
+    AntigravityAdapter.name: AntigravityAdapter,
 }
 
 
@@ -38,6 +40,7 @@ def get_adapters(cfg: Config) -> list[Adapter]:
 
 __all__ = [
     "Adapter",
+    "AntigravityAdapter",
     "ClaudeCodeAdapter",
     "CodexAdapter",
     "CursorAdapter",
