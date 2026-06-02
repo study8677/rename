@@ -2,9 +2,9 @@ import argparse
 import json
 import time
 
-from retitle import cli
-from retitle.config import Config
-from retitle.models import Message, Session
+from rename import cli
+from rename.config import Config
+from rename.models import Message, Session
 
 
 class FakeAdapter:

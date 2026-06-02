@@ -8,7 +8,7 @@ labels: bug
 <!-- A clear description of the bug. -->
 
 **Environment**
-- retitle version: <!-- `retitle --version` -->
+- rename version: <!-- `rename --version` -->
 - Tool affected: <!-- Claude Code / Codex / Cursor -->
 - OS: <!-- macOS 14 / Ubuntu 24.04 / ... -->
 - namer: <!-- heuristic / claude / codex / anthropic / openai -->
@@ -18,5 +18,5 @@ labels: bug
 2.
 
 **Relevant log**
-<!-- The daemon logs to ~/.local/state/retitle/retitle.log -->
+<!-- The daemon logs to ~/.local/state/rename/rename.log -->
 <!-- ⚠️ Please REDACT any private session titles/content before pasting. -->

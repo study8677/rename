@@ -1,5 +1,5 @@
-from retitle import util
-from retitle.models import Message
+from rename import util
+from rename.models import Message
 
 
 def test_is_noise_catches_harness_artifacts():

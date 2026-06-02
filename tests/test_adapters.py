@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from retitle.adapters import _proto, antigravity, claude_code, codex, cursor
+from rename.adapters import _proto, antigravity, claude_code, codex, cursor
 
 
 # --------------------------------------------------------------------------- #
@@ -442,7 +442,7 @@ def test_antigravity_set_title_unknown_id_rolls_back(tmp_path, monkeypatch):
     monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
     adapter = antigravity.AntigravityAdapter()
     # Real session present, but we pass a Session with a different id
-    from retitle.models import Session
+    from rename.models import Session
 
     s = Session(tool="antigravity", id=other, title="X", last_active=0, meta={"db": str(db)})
     # Our rewrite is a no-op when the target isn't found, but the UPDATE still
@@ -538,7 +538,7 @@ def test_antigravity_companion_set_title_unknown_id_is_safe_noop(tmp_path, monke
     adapter = antigravity.AntigravityAdapter()
     original_bytes = pb.read_bytes()
 
-    from retitle.models import Session
+    from rename.models import Session
 
     s = Session(
         tool="antigravity",
@@ -633,7 +633,7 @@ def test_antigravity_both_stores_listed_together(tmp_path, monkeypatch):
 # present, and round-trip a minimal fixture.
 # --------------------------------------------------------------------------- #
 def test_continue_unavailable_when_dir_missing(tmp_path, monkeypatch):
-    from retitle.adapters import continue_dev
+    from rename.adapters import continue_dev
     monkeypatch.setattr(continue_dev, "_SESSIONS_DIR", tmp_path / "does_not_exist")
     a = continue_dev.ContinueAdapter()
     assert a.available() is False
@@ -641,7 +641,7 @@ def test_continue_unavailable_when_dir_missing(tmp_path, monkeypatch):
 
 
 def test_continue_roundtrip(tmp_path, monkeypatch):
-    from retitle.adapters import continue_dev
+    from rename.adapters import continue_dev
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()
     sid = "session-abc-123"
@@ -667,14 +667,14 @@ def test_continue_roundtrip(tmp_path, monkeypatch):
 
 
 def test_zed_unavailable_when_dir_missing(monkeypatch, tmp_path):
-    from retitle.adapters import zed
+    from rename.adapters import zed
     monkeypatch.setattr(zed, "_store_dir", lambda: None)
     assert zed.ZedAdapter().available() is False
     assert zed.ZedAdapter().discover(0) == []
 
 
 def test_zed_roundtrip(monkeypatch, tmp_path):
-    from retitle.adapters import zed
+    from rename.adapters import zed
     store = tmp_path / "conversations"
     store.mkdir()
     payload = {
@@ -695,21 +695,21 @@ def test_zed_roundtrip(monkeypatch, tmp_path):
 
 
 def test_windsurf_unavailable_when_db_missing(monkeypatch):
-    from retitle.adapters import windsurf
+    from rename.adapters import windsurf
     monkeypatch.setattr(windsurf, "_vscdb", lambda: None)
     assert windsurf.WindsurfAdapter().available() is False
     assert windsurf.WindsurfAdapter().discover(0) == []
 
 
 def test_aider_unavailable_when_no_chats(monkeypatch, tmp_path):
-    from retitle.adapters import aider
+    from rename.adapters import aider
     monkeypatch.setattr(aider, "_discover_chats", lambda: [])
     assert aider.AiderAdapter().available() is False
     assert aider.AiderAdapter().discover(0) == []
 
 
 def test_aider_sidecar_roundtrip(monkeypatch, tmp_path):
-    from retitle.adapters import aider
+    from rename.adapters import aider
     proj = tmp_path / "myproj"
     proj.mkdir()
     chat = proj / ".aider.chat.history.md"

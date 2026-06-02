@@ -45,7 +45,7 @@ jobs:
         run: pytest -q
 
   macos-app:
-    name: Build Retitle.app (Swift)
+    name: Build Rename.app (Swift)
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
@@ -54,16 +54,16 @@ jobs:
       - name: swift build (debug)
         working-directory: macos-app
         run: swift build
-      - name: Assemble Retitle.app
+      - name: Assemble Rename.app
         working-directory: macos-app
         run: ./build-app.sh
-      - name: Archive Retitle.app
+      - name: Archive Rename.app
         working-directory: macos-app
         run: |
-          ditto -c -k --keepParent Retitle.app Retitle-app.zip
-      - name: Upload Retitle.app artifact
+          ditto -c -k --keepParent Rename.app Rename-app.zip
+      - name: Upload Rename.app artifact
         uses: actions/upload-artifact@v5
         with:
-          name: Retitle-app-macos
-          path: macos-app/Retitle-app.zip
+          name: Rename-app-macos
+          path: macos-app/Rename-app.zip
           if-no-files-found: error

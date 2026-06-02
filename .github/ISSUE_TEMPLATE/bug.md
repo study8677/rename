@@ -20,16 +20,16 @@ labels: bug
 
 ## Environment
 
-- retitle version: `retitle --version`
+- rename version: `rename --version`
 - OS: <!-- macOS 14.5 / Windows 11 / Ubuntu 24.04 -->
 - Which tool's sessions are affected: <!-- Claude Code / Codex / Cursor / Antigravity / Continue / Zed / Windsurf / Aider -->
-- Namer: <!-- `retitle status` shows this -->
+- Namer: <!-- `rename status` shows this -->
 - GUI app, if any: <!-- macos-app / windows-app / none -->
 
 ## Logs
 
 <details>
-<summary>retitle log (tail of ~/.local/state/retitle/retitle.log on macOS/Linux, %LOCALAPPDATA%\retitle\retitle.log on Windows)</summary>
+<summary>rename log (tail of ~/.local/state/rename/rename.log on macOS/Linux, %LOCALAPPDATA%\rename\rename.log on Windows)</summary>
 
 ```
 paste log tail here

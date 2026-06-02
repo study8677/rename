@@ -6,7 +6,7 @@ labels: enhancement
 
 ## What problem does it solve?
 
-<!-- Concrete situation, not abstract. e.g., "I want to filter `retitle list`
+<!-- Concrete situation, not abstract. e.g., "I want to filter `rename list`
 to only show the last 24 hours" -->
 
 ## What would the feature look like?

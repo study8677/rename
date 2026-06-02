@@ -5,13 +5,57 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-02
+
+### Changed — breaking
+- **Project renamed `retitle → rename`.** Everything that used to be named
+  `retitle` is now `rename`: the CLI binary, the Python package
+  (`src/retitle/` → `src/rename/`), the macOS app bundle (`Retitle.app` →
+  `Rename.app`, bundle id `com.github.rename.app`), the Windows GUI package
+  (`retitle_gui` → `rename_gui`), the launchd label (`com.github.rename`),
+  and the Homebrew tap path (`brew install study8677/rename/rename`).
+- **State and config paths follow the same rename:**
+  - `~/.config/retitle/config.toml` → `~/.config/rename/config.toml`
+  - `~/.local/state/retitle/state.json` → `~/.local/state/rename/state.json`
+  - `~/.local/state/retitle/retitle.log` → `~/.local/state/rename/rename.log`
+  - `RETITLE_*` env vars → `RENAME_*`
+- **One-time automatic migration** on first run of v1.0.0: if the legacy
+  `~/.config/retitle/` or `~/.local/state/retitle/` directory exists and
+  the new one doesn't, `rename` moves it for you. No data loss; no manual
+  step. If the move fails (permissions, cross-device, …) `rename` starts
+  fresh under the new path and you can `mv` by hand.
+
+### Migration
+
+```bash
+# 1. Uninstall the old service
+retitle uninstall    # if you had the daemon installed
+
+# 2. Reinstall under the new name
+brew uninstall study8677/retitle/retitle  # if installed via tap
+brew install   study8677/rename/rename
+# or
+pipx uninstall retitle
+pipx install   git+https://github.com/study8677/rename.git
+
+# 3. Start the daemon back up under the new label
+rename install
+
+# 4. (macOS app users) re-grant Full Disk Access to the new Rename.app —
+#    the TCC bundle id changed, so the old grant doesn't carry over.
+```
+
+The macOS / Windows GUIs both keep the v0.6.x behaviour set (historical
+baseline, "Rename historical sessions" button, en/zh i18n). The Dashboard
+window auto-opens on first launch and on re-launch — see v0.6.x notes.
+
 ## [0.6.1] - 2026-06-02
 
 ### Fixed
-- **`retitle --version` reported the wrong version** (`0.4.1`) because
-  `src/retitle/__init__.py` hard-coded a stale string that was never bumped
+- **`rename --version` reported the wrong version** (`0.4.1`) because
+  `src/rename/__init__.py` hard-coded a stale string that was never bumped
   alongside `pyproject.toml`. The module now reads its version from the
-  installed package metadata (`importlib.metadata.version("retitle")`), so
+  installed package metadata (`importlib.metadata.version("rename")`), so
   there's only one source of truth — `pyproject.toml`.
 
 ## [0.6.0] - 2026-06-02
@@ -20,9 +64,9 @@ All notable changes to this project are documented here. Format loosely follows
 - **Daemon: skip historical sessions by default.** First run records a
   baseline timestamp in `state.json`; only sessions whose `last_active` is at
   or after that baseline are eligible for the background loop. Existing
-  chats from before retitle was installed stay untouched unless the user
+  chats from before rename was installed stay untouched unless the user
   opts in. Bumps the GUI's `status --json` payload with `baseline_ts`.
-- **`retitle once --historical`** opt-in flag (CLI) and **"Rename historical
+- **`rename once --historical`** opt-in flag (CLI) and **"Rename historical
   sessions"** button (macOS + Windows GUI) — confirms with a dialog, then
   runs a full backlog pass with optional dry-run mode. Both GUIs show a
   toast with the CLI summary when finished.
@@ -48,13 +92,13 @@ All notable changes to this project are documented here. Format loosely follows
   - `windsurf` is a Cursor-fork; the adapter reuses the Cursor write path
     with the Windsurf data dir
   - `aider` is read-only — Aider has no native title slot, so renames go
-    to a `.aider.chat.history.md.title` sidecar that only retitle reads
-- **macOS Homebrew tap** — `brew install study8677/retitle/retitle` (after
-  running `brew tap study8677/retitle https://github.com/study8677/retitle.git`).
-  Includes a `brew services start retitle` integration that mirrors
-  `retitle install` on launchd.
+    to a `.aider.chat.history.md.title` sidecar that only rename reads
+- **macOS Homebrew tap** — `brew install study8677/rename/rename` (after
+  running `brew tap study8677/rename https://github.com/study8677/rename.git`).
+  Includes a `brew services start rename` integration that mirrors
+  `rename install` on launchd.
 - **GitHub Actions matrix expansion** — `windows-latest` job for the Python
-  test suite, a new `macos-app` job that builds `Retitle.app` and uploads it
+  test suite, a new `macos-app` job that builds `Rename.app` and uploads it
   as an artifact on every push, and a `windows-gui` job that smoke-imports
   the PySide6 GUI.
 - **Hand-crafted Dashboard + menu-bar SVGs** in `assets/` — embedded at the
@@ -79,7 +123,7 @@ All notable changes to this project are documented here. Format loosely follows
   the same `brain/` artifacts regardless of store. Writes go through a
   write-tmp + `os.replace` atomic rename. Verified against a `.pb` file shared
   by [@xiongaox](https://github.com/xiongaox) on the issue.
-- Closes [#1](https://github.com/study8677/retitle/issues/1). Thanks to
+- Closes [#1](https://github.com/study8677/rename/issues/1). Thanks to
   [@xiongaox](https://github.com/xiongaox) for filing it AND for sharing the
   Companion App `.pb` that unlocked the second store format — the issue is
   what made the whole Antigravity adapter possible.
@@ -89,7 +133,7 @@ All notable changes to this project are documented here. Format loosely follows
   - Card-style stats header, brand-coloured tool filter chips, hover effects,
     before/after diff rows
   - **Visual settings panel** — sliders/spinners for idle / poll / batch sizes,
-    namer picker, per-tool toggles; reads/writes `~/.config/retitle/config.toml`
+    namer picker, per-tool toggles; reads/writes `~/.config/rename/config.toml`
     preserving comments
   - **First-launch onboarding** — explains Full Disk Access with one-click
     System Settings deep link; UserDefaults flag suppresses on subsequent
@@ -100,15 +144,15 @@ All notable changes to this project are documented here. Format loosely follows
   - **Toast notifications** — friendly messages ("Background renaming paused",
     "Renamed to …") replace raw stderr surfacing in the UI
   - Localized in English and 简体中文. Builds with just Command Line Tools
-    (`./build-app.sh` → `Retitle.app`).
+    (`./build-app.sh` → `Rename.app`).
 - **Optional Windows / cross-platform GUI** in `windows-app/` — Python +
   PySide6 (Qt6). Mirrors the macOS app feature-for-feature using the same
-  CLI bridge. On Windows it can spawn/kill `retitle run` as a managed child
+  CLI bridge. On Windows it can spawn/kill `rename run` as a managed child
   process (no native service integration there yet). Shipped untested by
   the developer — pull requests with Windows fixes welcome.
-- `retitle status --json` — structured output so any GUI can read config,
+- `rename status --json` — structured output so any GUI can read config,
   detected tools, namer resolution and daemon state.
-- `retitle once --session ID` (repeatable) — rename one specific session,
+- `rename once --session ID` (repeatable) — rename one specific session,
   bypassing the idle and substance gates. Powers the GUI "Rename now" button.
 
 ## [0.4.1] - 2026-05-30
@@ -127,7 +171,7 @@ All notable changes to this project are documented here. Format loosely follows
 ## [0.4.0] - 2026-05-30
 
 ### Added
-- `retitle once --limit N` and `retitle once --all` to rename past sessions on
+- `rename once --limit N` and `rename once --all` to rename past sessions on
   demand, in controlled batches (with progress output).
 
 ### Changed
@@ -139,24 +183,24 @@ All notable changes to this project are documented here. Format loosely follows
 ## [0.3.0] - 2026-05-30
 
 ### Changed
-- **Default namer is now `auto` — no API key required.** retitle reuses the
+- **Default namer is now `auto` — no API key required.** rename reuses the
   `claude` or `codex` CLI you're already logged into to produce LLM-quality
   titles, falling back to the offline heuristic if neither is installed. The
   `claude` namer defaults to the fast Haiku model. Set `namer = "heuristic"` for a
   fully offline, zero-cost run.
 
 ### Added
-- `retitle status` now shows what `auto` resolved to (e.g. `namer=auto → claude`).
+- `rename status` now shows what `auto` resolved to (e.g. `namer=auto → claude`).
 
 ## [0.2.0] - 2026-05-29
 
 ### Added
-- `retitle search <query>` — find sessions across Claude Code, Codex and Cursor
+- `rename search <query>` — find sessions across Claude Code, Codex and Cursor
   at once, by title (fast) or with `--content` to grep message text, with
   highlighted matches and snippets.
-- `retitle stats` — a one-glance overview: sessions per tool, untitled / stale
-  counts, oldest active session, and how many retitle has renamed.
-- `--json` output for `retitle list`, `retitle search` and `retitle stats`.
+- `rename stats` — a one-glance overview: sessions per tool, untitled / stale
+  counts, oldest active session, and how many rename has renamed.
+- `--json` output for `rename list`, `rename search` and `rename stats`.
 - `SECURITY.md` documenting the privacy/data-safety model and how to report issues.
 - `ARCHITECTURE.md` explaining the layering and each tool's reverse-engineered storage.
 - Ruff linting, enforced in CI.
@@ -166,7 +210,7 @@ All notable changes to this project are documented here. Format loosely follows
 Initial release.
 
 ### Added
-- Background renamer that retitles AI coding sessions once they go idle (default 5 minutes).
+- Background renamer that renames AI coding sessions once they go idle (default 5 minutes).
 - Adapters for **Claude Code** (append-only `ai-title` lines), **Codex** (`state_*.sqlite`
   `threads.title`), and **Cursor** (`state.vscdb` composer headers + data).
 - Naming backends: `heuristic` (default, offline, zero-dependency), `claude` / `codex` (CLI

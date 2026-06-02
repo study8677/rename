@@ -1,6 +1,6 @@
 ---
 name: 🔌 New adapter / tool support
-about: Ask retitle to support a new AI coding tool (or improve an existing adapter)
+about: Ask rename to support a new AI coding tool (or improve an existing adapter)
 labels: adapter, enhancement
 ---
 

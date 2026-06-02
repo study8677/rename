@@ -1,11 +1,11 @@
 # Security Policy
 
-`retitle` reads and writes your local AI coding session stores, so its safety and
+`rename` reads and writes your local AI coding session stores, so its safety and
 privacy are a first-class concern.
 
-## What retitle does with your data
+## What rename does with your data
 
-- **No telemetry, ever, and it only changes titles.** retitle never phones home;
+- **No telemetry, ever, and it only changes titles.** rename never phones home;
   it appends or updates a single title field per session and never edits, deletes,
   or reorders your conversations.
 - **Titling uses your own logged-in CLI by default.** The default `auto` namer
@@ -24,7 +24,7 @@ Please report security issues **privately** via GitHub Security Advisories
 (the "Report a vulnerability" button under the repository's **Security** tab),
 not a public issue.
 
-Include what you found, the affected version (`retitle --version`), and steps to
+Include what you found, the affected version (`rename --version`), and steps to
 reproduce. ⚠️ Please **redact any private session content** from your report.
 
 We aim to acknowledge reports within a few days and to fix verified issues
@@ -32,5 +32,5 @@ promptly.
 
 ## Supported versions
 
-retitle is pre-1.0; security fixes land on the latest `main` and the newest
+rename is pre-1.0; security fixes land on the latest `main` and the newest
 release.

@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to retitle! -->
+<!-- Thanks for contributing to rename! -->
 
 ## What this changes
 

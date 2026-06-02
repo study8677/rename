@@ -2,13 +2,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "Retitle",
+    name: "Rename",
     defaultLocalization: "en",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "Retitle",
-            path: "Sources/Retitle",
+            name: "Rename",
+            path: "Sources/Rename",
             resources: [
                 .process("Resources"),
             ]

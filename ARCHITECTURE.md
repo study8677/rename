@@ -1,6 +1,6 @@
 # Architecture
 
-`retitle` is small and strictly layered, with **zero third-party dependencies**.
+`rename` is small and strictly layered, with **zero third-party dependencies**.
 A polling **engine** asks **adapters** (one per tool) to discover sessions, then
 uses a **namer** to produce a fresh title and writes it back through the adapter.
 
@@ -128,8 +128,8 @@ TopEntry {                               # field 1 repeated, no base64
 - **Write (IDE):** rewrite the one matching `CascadeTrajectorySummary.summary`
   inside the layered envelope and `UPDATE ItemTable` under `BEGIN IMMEDIATE`.
 - **Write (Companion):** rewrite the matching entry in the raw `.pb` and replace
-  the file atomically (write to `*.retitle.tmp`, then `os.replace`).
-- **Proto codec:** hand-rolled in [`_proto.py`](src/retitle/adapters/_proto.py)
+  the file atomically (write to `*.rename.tmp`, then `os.replace`).
+- **Proto codec:** hand-rolled in [`_proto.py`](src/rename/adapters/_proto.py)
   — varints + length-prefixed fields, ~80 lines of stdlib.
 - **Caveats:** The IDE store is a *synced* store; a local write may be
   overwritten by cloud sync or pushed to other devices. The Companion store is
@@ -143,9 +143,9 @@ For each discovered session, in order:
 
 1. **Historical gate** — if the state store has a baseline timestamp and the
    session's `last_active` is older than it, skip. The session existed before
-   retitle started watching this machine; auto-renaming it would be a surprise.
+   rename started watching this machine; auto-renaming it would be a surprise.
    The user can override per-pass with `include_historical=True` (the GUI's
-   "Rename historical sessions" button / `retitle once --historical`), or
+   "Rename historical sessions" button / `rename once --historical`), or
    per-session with `--session ID` (a deliberate single-target rename).
 2. **Idle gate** — if it has been idle for less than `idle_seconds` (default 300),
    skip. It's still in use.
@@ -170,12 +170,12 @@ From that moment on, the engine treats any session whose `last_active` predates
 the baseline as **historical** and silently skips it from automatic passes —
 even if its idle/substance/content gates would otherwise approve a rename.
 
-The invariant retitle promises: *installing the daemon never retroactively
+The invariant rename promises: *installing the daemon never retroactively
 rewrites your existing chat titles without an explicit user action.* Two
 escape hatches exist for the user to opt in:
 
 - **`tick(include_historical=True)`** — bypass the gate for one whole pass.
-  Used by `retitle once --historical` and the dashboard's "Rename historical
+  Used by `rename once --historical` and the dashboard's "Rename historical
   sessions" button. The CLI also drops `max_age_days` and the batch cap in
   this mode (`since = 0.0`, `limit = 0`) so the *full* backlog is processed.
 - **`tick(session_filter={…})`** — a per-session override. Per-session forced
@@ -183,12 +183,12 @@ escape hatches exist for the user to opt in:
   single target.
 
 Dry-run passes (`cfg.dry_run = True`) do *not* persist the baseline — so a
-user previewing with `retitle once --dry-run` won't inadvertently lock in a
+user previewing with `rename once --dry-run` won't inadvertently lock in a
 baseline they didn't want to commit to.
 
 ## Data-safety design
 
-`retitle` writes to your real session stores, so the rules are conservative:
+`rename` writes to your real session stores, so the rules are conservative:
 
 - **Idle-only.** It only ever touches sessions that have gone quiet.
 - **No retroactive renames without consent.** A baseline timestamp recorded on

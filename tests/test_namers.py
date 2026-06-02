@@ -1,6 +1,6 @@
-import retitle.namers.cli_namer as cli_namer
-from retitle.config import Config
-from retitle.namers import get_namer
+import rename.namers.cli_namer as cli_namer
+from rename.config import Config
+from rename.namers import get_namer
 
 
 def _which(*available):
@@ -28,7 +28,7 @@ def test_explicit_heuristic_ignores_clis(monkeypatch):
     assert get_namer(Config(namer="heuristic")).name == "heuristic"
 
 
-from retitle.models import Message  # noqa: E402
+from rename.models import Message  # noqa: E402
 
 _MSGS = [Message("user", "add CSV export to the reports page and fix pagination")]
 

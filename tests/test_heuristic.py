@@ -1,5 +1,5 @@
-from retitle.models import Message
-from retitle.namers.heuristic import HeuristicNamer
+from rename.models import Message
+from rename.namers.heuristic import HeuristicNamer
 
 namer = HeuristicNamer()
 

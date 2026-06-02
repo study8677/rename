@@ -1,81 +1,86 @@
 <div align="center">
 
-# 🏷️ retitle
+# rename
 
-### Your AI coding sessions are a goldmine. Bad titles bury it. retitle digs it back up.
+#### Keep your AI coding sessions named after what they actually became.
 
-Every session with Claude Code, Codex or Cursor is hard-won context — the bugs you chased,
-the decisions you made, the code you shipped. It's a **valuable asset**. But all three tools
-title a chat from your **first message** and then freeze it forever. An hour later the work has
-moved on, yet the sidebar still says *"Check if branches are synced."* Multiply that by hundreds
-of sessions and your most valuable history becomes an unsearchable graveyard.
-
-That asset is too good to waste on a stale title.
-
-**`retitle` runs quietly in the background and, once a session goes idle, rewrites its title to
-match what the work actually became — across all three tools.** Then `retitle search` lets you
-mine that history: find any past session across Claude Code, Codex and Cursor at once.
-
-[![CI](https://github.com/study8677/retitle/actions/workflows/ci.yml/badge.svg)](https://github.com/study8677/retitle/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/study8677/retitle?label=release&color=blue)](https://github.com/study8677/retitle/releases)
-[![GitHub stars](https://img.shields.io/github/stars/study8677/retitle?style=flat&color=yellow)](https://github.com/study8677/retitle/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
-[![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](pyproject.toml)
-[![Supported tools](https://img.shields.io/badge/tools-8-9c27b0.svg)](#supported-tools)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-orange.svg)](CONTRIBUTING.md)
-
-**English** · [简体中文](README.zh-CN.md) · [Cookbook](docs/COOKBOOK.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Cookbook](docs/COOKBOOK.md)
 
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/study8677/retitle/main/assets/demo.svg" alt="retitle rewrites stale Claude Code, Codex and Cursor session titles to match the latest work" width="820">
+  <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/demo.svg" alt="rename rewrites stale Claude Code, Codex and Cursor session titles to match the latest work" width="820">
 </p>
 
 <p align="center">
   <a href="macos-app/">
-    <img src="https://raw.githubusercontent.com/study8677/retitle/main/assets/dashboard.svg" alt="The optional native menu-bar app shows every session across Claude Code, Codex, Cursor and Antigravity, with the old → new title diff in one place" width="820">
+    <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/dashboard.svg" alt="A native menu-bar app shows every session across Claude Code, Codex, Cursor and Antigravity" width="820">
   </a>
 </p>
 
-<p align="center"><sub>The optional <a href="macos-app/">native macOS app</a> and <a href="windows-app/">Windows GUI</a> give you the same picture without opening a terminal.</sub></p>
+<br>
 
-<p align="center"><b>30-second try</b> — no install, writes nothing:</p>
+Claude Code, Codex and Cursor each name a chat from your first message — then freeze it
+forever. An hour later your sidebar still says *Check if branches are synced* while the
+work has long since moved on. Multiply by a few hundred sessions and your history becomes
+unsearchable.
+
+`rename` watches in the background. When a session goes idle, it rewrites the title to
+match what the work actually became. Then `rename search` lets you find it again — across
+every tool at once.
+
+<br>
+
+## Install
 
 ```bash
-uvx --from git+https://github.com/study8677/retitle.git retitle list
+brew install study8677/rename/rename     # macOS, via Homebrew tap
+pipx install git+https://github.com/study8677/rename.git
+uv tool install git+https://github.com/study8677/rename.git
 ```
 
-Or install for real:
+No API key required. Zero runtime dependencies. Works on macOS and Linux.
+
+<br>
+
+## Use
 
 ```bash
-brew install study8677/retitle/retitle   # macOS (Homebrew tap)
-pipx install retitle                      # everywhere else (Python 3.11+)
+rename status                 # what was detected on this machine
+rename list                   # preview new titles (writes nothing)
+rename once                   # one pass, then exit
+rename install                # run forever, in the background
 ```
+
+A pass wakes every minute, looks for sessions idle ≥ 5 minutes, and rewrites the title
+when content has changed since it last looked. Re-runs are free; a clean tree is a no-op.
+
+<br>
 
 ---
 
-## The problem: a goldmine you can't search
+<br>
 
-Every AI coding tool titles a session once, from its opening prompt, and freezes it there:
+## The problem
+
+Each tool names a chat from your opening prompt and freezes it there. The title becomes
+fiction in minutes.
 
 | Tool | What the sidebar says | What the session is now about |
 |------|----------------------|--------------------------------|
-| **Cursor** | `Add a loading spinner` | *migrating the database to Postgres* |
-| **Codex** | `Fix a typo in the README` | *debugging a flaky CI pipeline* |
-| **Claude Code** | `Check if branches are synced` | *implementing the audit-log feature* |
+| Cursor | `Add a loading spinner` | migrating the database to Postgres |
+| Codex | `Fix a typo in the README` | debugging a flaky CI pipeline |
+| Claude Code | `Check if branches are synced` | implementing the audit-log feature |
 
-The title is a lie within ten minutes. So a week later, when you *know* you solved this exact
-bug with the AI before, you can't find the conversation — the asset is there, but it's buried.
-`retitle` keeps the title honest, so the goldmine stays searchable.
+A week later you know you solved this bug with the AI before. You can't find the
+conversation. The conversation exists. The label hides it.
 
-<sub>(Examples are illustrative — `retitle` reads your sessions locally and never publishes them anywhere.)</sub>
+<br>
 
 ## What it looks like
 
 ```console
-$ retitle list
+$ rename list
 
 Claude Code
      16m  Check if branches are synced          → Implement the audit-log feature
@@ -87,62 +92,34 @@ Codex
     2.1h  Review the API changes                · no new content since last rename
 
 Cursor
-     29m  Add a loading spinner                 → 修复登录页面的样式问题
+     29m  Add a loading spinner                 → Fix the login-page style regression
     2.4h  First sync question                   → Track down the duplicate-error bug
 
 7 session(s) would be renamed next pass (idle ≥ 5m, namer=heuristic).
-Run `retitle once` to apply, or `retitle install` to do it continuously.
+Run `rename once` to apply, or `rename install` to do it continuously.
 ```
 
----
+<br>
 
-## 🔍 Also: find any past session
+## Search
 
-Accurate titles are only half the point — the other half is *finding* the session
-again. `retitle search` looks across Claude Code, Codex and Cursor at once:
+Accurate titles are half. Finding the session is the other half. `rename search` looks
+across every supported tool at once.
 
 ```console
-$ retitle search "stripe webhook"
-
-🔍 "stripe webhook" — 2 matches
+$ rename search "stripe webhook"
 
   Cursor        3h    Wire up the Stripe webhook handler    payments-api
   Claude Code   2d    Debug the Stripe webhook signature    billing-svc
 
-$ retitle search postgres --content      # also grep message text, with snippets
+$ rename search postgres --content   # also grep message text, with snippets
 ```
+
+<br>
 
 ---
 
-## Quick start
-
-`retitle` is pure Python with **zero dependencies**. Install it as an isolated CLI:
-
-```bash
-# with pipx (recommended)
-pipx install git+https://github.com/study8677/retitle.git
-
-# or with uv
-uv tool install git+https://github.com/study8677/retitle.git
-
-# or from source
-git clone https://github.com/study8677/retitle.git && cd retitle
-pip install -e .
-```
-
-Then:
-
-```bash
-retitle status         # what did it detect on this machine?
-retitle list           # preview: current title → proposed title (writes nothing)
-retitle once           # do one rename pass right now
-retitle install        # run it forever in the background (launchd / systemd)
-```
-
-That's it. With `retitle install` it wakes up every minute, finds sessions that have been idle
-for 5 minutes, and retitles the ones whose content has changed since it last looked.
-
----
+<br>
 
 ## How it works
 
@@ -166,12 +143,12 @@ The decision rule for each session is deliberately conservative:
 
 This makes the whole thing **idempotent** and **safe to run continuously**.
 
-**Where the title comes from.** By default retitle shells out to the `claude`
+**Where the title comes from.** By default rename shells out to the `claude`
 (or `codex`) CLI you're already logged into — `claude --model haiku -p "…"` — so
 titles are real LLM summaries of the conversation, with no API key. No CLI
 installed? It falls back to the offline heuristic.
 
-**Safe by default on existing machines.** When you install retitle, the daemon
+**Safe by default on existing machines.** When you install rename, the daemon
 records a baseline timestamp and leaves every chat from *before* that moment
 alone. The background loop only renames conversations that become active after
 install — your history is never retroactively touched without consent.
@@ -181,10 +158,10 @@ opt in explicitly. The macOS / Windows dashboard has a **"Rename historical
 sessions"** button with confirm + dry-run, and the CLI mirror is:
 
 ```bash
-retitle once                          # latest batch only (default behaviour)
-retitle once --historical --dry-run   # preview every pre-install chat
-retitle once --historical             # rename the whole backlog (ignores max-age & batch cap)
-retitle once --session <id>           # force-rename one specific session
+rename once                          # latest batch only (default behaviour)
+rename once --historical --dry-run   # preview every pre-install chat
+rename once --historical             # rename the whole backlog (ignores max-age & batch cap)
+rename once --session <id>           # force-rename one specific session
 ```
 
 ---
@@ -203,16 +180,16 @@ retitle once --session <id>           # force-rename one specific session
 | **Aider** | `.aider.chat.history.md` (per project) | sidecar `.aider.chat.history.md.title` file (read-only as far as Aider itself is concerned) | ⚠️ experimental — read-only |
 
 > **A note on writing while the app is open.** Codex, Cursor and Antigravity keep their data
-> in live SQLite databases. `retitle` writes carefully (read-only reads, `busy_timeout` on
+> in live SQLite databases. `rename` writes carefully (read-only reads, `busy_timeout` on
 > writes), and only ever touches *idle* sessions. Still, the host apps cache chats in memory,
 > so a title you change on disk may be overwritten if you reopen that exact chat in the
-> running app. For the most reliable results, let `retitle` run while the app is closed.
+> running app. For the most reliable results, let `rename` run while the app is closed.
 > Claude Code's append-only format has no such caveat.
 
 ### Antigravity notes
 
 Antigravity ships in two forms — the **IDE** (a VS Code fork with a Gemini sidebar)
-and a standalone **Companion App** (Windows-only). `retitle` supports both:
+and a standalone **Companion App** (Windows-only). `rename` supports both:
 
 | Flavor | Title store | Format |
 |---|---|---|
@@ -226,24 +203,24 @@ by atomic rename. Conversation transcripts (`~/.gemini/antigravity/conversations
 are **encrypted at rest** in either flavor, but Antigravity's agent writes plaintext
 working artifacts to `~/.gemini/antigravity/brain/<uuid>/` (`task.md`,
 `implementation_plan.md`, `walkthrough.md`, plus `*.metadata.json` summaries) — those
-are the material `retitle` feeds to the namer.
+are the material `rename` feeds to the namer.
 
-- ✅ Antigravity sessions show up in `retitle list`, `retitle search`, `retitle stats`
+- ✅ Antigravity sessions show up in `rename list`, `rename search`, `rename stats`
 - ✅ Automatic rename works for any conversation that has produced brain artifacts
   (longer / planning-heavy chats — the ones whose title most often drifts). Short
   chats with no artifacts are skipped by the substance gate, which is fine — there'd
   be nothing to title with anyway.
-- ✅ Manual `retitle once --tool antigravity` works regardless.
+- ✅ Manual `rename once --tool antigravity` works regardless.
 
 If Antigravity ships an extension API exposing raw chat-session transcripts later,
 we'll wire it in for full coverage. Track at
-[#1](https://github.com/study8677/retitle/issues/1).
+[#1](https://github.com/study8677/rename/issues/1).
 
 ---
 
 ## Naming backends — no API key required
 
-The default, **`auto`**, needs **no API key at all**. retitle reuses the `claude` or
+The default, **`auto`**, needs **no API key at all**. rename reuses the `claude` or
 `codex` CLI you're *already logged into* to write good, LLM-quality titles, and falls
 back to a fully-offline heuristic if neither is installed. You never paste a key.
 
@@ -260,15 +237,15 @@ Out of the box — nothing to configure, no key to paste — you get LLM-quality
 using credits you already have. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
 
 ```bash
-retitle status        # shows what auto resolved to, e.g. "namer=auto → claude"
+rename status        # shows what auto resolved to, e.g. "namer=auto → claude"
 ```
 
 ---
 
 ## Optional: GUI apps (menu bar + dashboard)
 
-`retitle` ships two optional GUI front-ends. Both are thin viewers over the
-Python CLI — the daemon you installed with `retitle install` keeps doing all
+`rename` ships two optional GUI front-ends. Both are thin viewers over the
+Python CLI — the daemon you installed with `rename install` keeps doing all
 the real work, the apps just let you see what's happening.
 
 | Flavor | Path | Toolchain | Status |
@@ -298,10 +275,10 @@ Both apps share the same feature set:
 ```bash
 cd macos-app
 ./build-app.sh
-open Retitle.app
+open Rename.app
 ```
 
-Drag `Retitle.app` into `~/Applications` and add it to **Login Items** to
+Drag `Rename.app` into `~/Applications` and add it to **Login Items** to
 persist across reboots. It's a `LSUIElement` app — menu bar only, no Dock icon.
 
 ### Windows build
@@ -310,7 +287,7 @@ persist across reboots. It's a `LSUIElement` app — menu bar only, no Dock icon
 cd windows-app
 python -m venv .venv && .venv\Scripts\activate
 pip install -e .
-retitle-gui
+rename-gui
 ```
 
 For auto-start, drop a shortcut into `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`.
@@ -318,7 +295,7 @@ For auto-start, drop a shortcut into `%APPDATA%\Microsoft\Windows\Start Menu\Pro
 ### Architecture
 
 Both apps talk to the CLI through `subprocess` / `Process` and JSON. The CLI
-exposes `retitle status --json`, `list --json`, `stats --json`, `search --json`,
+exposes `rename status --json`, `list --json`, `stats --json`, `search --json`,
 and `once --session <id>` — the GUI calls these and renders the results. There
 is no extra state, no extra storage, and no extra daemon — the existing Python
 daemon stays the single source of truth.
@@ -327,7 +304,7 @@ daemon stays the single source of truth.
 
 ## Configuration
 
-`retitle config` creates and prints `~/.config/retitle/config.toml`:
+`rename config` creates and prints `~/.config/rename/config.toml`:
 
 ```toml
 idle_seconds = 300          # rename after 5 minutes idle
@@ -346,23 +323,23 @@ model = "claude-haiku-4-5"
 model = "gpt-4o-mini"
 ```
 
-Any field can be overridden per-invocation: `retitle run --idle 600 --namer anthropic --tool cursor`.
+Any field can be overridden per-invocation: `rename run --idle 600 --namer anthropic --tool cursor`.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `retitle list` | Preview every discovered session and its proposed title (writes nothing) |
-| `retitle search <q>` | Find sessions across all tools by title (add `--content` to grep message text) |
-| `retitle stats` | A quick overview: sessions per tool, how many are untitled / stale |
-| `retitle once` | Rename the latest batch now (`--limit N`, `--all`, `--dry-run`) |
-| `retitle run` | Run continuously in the foreground (add `--once`, `--dry-run`) |
-| `retitle install` | Install + start the background service (launchd on macOS, systemd on Linux) |
-| `retitle uninstall` | Stop and remove the background service |
-| `retitle status` | Show config, detected tools, and daemon status |
-| `retitle config` | Create / print the config file |
+| `rename list` | Preview every discovered session and its proposed title (writes nothing) |
+| `rename search <q>` | Find sessions across all tools by title (add `--content` to grep message text) |
+| `rename stats` | A quick overview: sessions per tool, how many are untitled / stale |
+| `rename once` | Rename the latest batch now (`--limit N`, `--all`, `--dry-run`) |
+| `rename run` | Run continuously in the foreground (add `--once`, `--dry-run`) |
+| `rename install` | Install + start the background service (launchd on macOS, systemd on Linux) |
+| `rename uninstall` | Stop and remove the background service |
+| `rename status` | Show config, detected tools, and daemon status |
+| `rename config` | Create / print the config file |
 
-> `retitle list`, `retitle search` and `retitle stats` also accept `--json` for scripting.
+> `rename list`, `rename search` and `rename stats` also accept `--json` for scripting.
 
 ---
 
@@ -374,9 +351,9 @@ Any field can be overridden per-invocation: `retitle run --idle 600 --namer anth
   leave your machine at all? Set `namer = "heuristic"` and it's 100% offline.
 - **No surprise retroactive renames.** First run records a baseline timestamp;
   pre-existing chats are skipped by the background loop. Renaming your backlog
-  is a deliberate one-click action (or `retitle once --historical`), never a
+  is a deliberate one-click action (or `rename once --historical`), never a
   side-effect of installing the daemon.
-- **It only ever changes titles.** `retitle` reads transcripts and writes a single title field /
+- **It only ever changes titles.** `rename` reads transcripts and writes a single title field /
   appends a single line. It never edits, deletes, or reorders your conversations.
 - **It's reversible and idempotent.** A bad title is just a title — send a message and it gets
   re-evaluated. Re-running does nothing unless content changed.
@@ -384,7 +361,7 @@ Any field can be overridden per-invocation: `retitle run --idle 600 --namer anth
 ## FAQ
 
 **Will it fight with the tool's own auto-naming?**
-No. The tools title once and stop; `retitle` only acts after a session is idle, so they aren't
+No. The tools title once and stop; `rename` only acts after a session is idle, so they aren't
 writing at the same time.
 
 **Will it overwrite titles I set myself?**
@@ -399,11 +376,11 @@ paste. It spends credits you already have; for zero cost, set `namer = "heuristi
 Yes — that's the design. See [How it works](#how-it-works). The one caveat is editing Cursor's DB
 while Cursor is open (above).
 
-**What happens to my existing chats when I first install retitle?**
+**What happens to my existing chats when I first install rename?**
 Nothing automatic. First run records a baseline timestamp; the background daemon
 only renames sessions that become active *after* that. If you want your backlog
 processed too, hit **"Rename historical sessions"** in the dashboard or run
-`retitle once --historical --dry-run` to preview, then drop `--dry-run`.
+`rename once --historical --dry-run` to preview, then drop `--dry-run`.
 
 ## Contributing
 
@@ -411,26 +388,20 @@ Curious how it works under the hood — including the reverse-engineered session
 storage format of each tool? See **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 Adding support for another tool is one file — implement four methods (`available`, `discover`,
-`read_transcript`, `set_title`) in `src/retitle/adapters/`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+`read_transcript`, `set_title`) in `src/rename/adapters/`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
-git clone https://github.com/study8677/retitle.git && cd retitle
+git clone https://github.com/study8677/rename.git && cd rename
 pip install -e ".[dev]"
 pytest
 ```
 
-## Star this repo
-
-Your AI sessions are an asset worth keeping. If `retitle` helps you reclaim yours, a ⭐ helps
-other people find it — and motivates more adapters (Aider, Continue, Zed, …). Issues and PRs welcome.
-
 ## Acknowledgments
 
-- **[@xiongaox](https://github.com/xiongaox)** filed [#1](https://github.com/study8677/retitle/issues/1)
-  asking for Antigravity support. That issue is what unlocked the whole Antigravity adapter —
-  the protobuf schema reverse-engineering, the `brain/` artifacts discovery, and (after he
-  shared the Companion App's `.pb` file header in the same issue) the Companion App store
-  format. Thank you 🙏.
+[@xiongaox](https://github.com/xiongaox) filed [#1](https://github.com/study8677/rename/issues/1)
+asking for Antigravity support. That issue unlocked the whole Antigravity adapter — the
+protobuf schema reverse-engineering, the `brain/` artifacts discovery, and (after the
+Companion App's `.pb` file was shared) the Companion App store format.
 
 ## License
 

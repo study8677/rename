@@ -1,11 +1,11 @@
 import time
 
-from retitle.adapters.base import Adapter
-from retitle.config import Config
-from retitle.engine import Engine
-from retitle.models import Message, Session
-from retitle.namers.base import Namer
-from retitle.state import StateStore
+from rename.adapters.base import Adapter
+from rename.config import Config
+from rename.engine import Engine
+from rename.models import Message, Session
+from rename.namers.base import Namer
+from rename.state import StateStore
 
 
 class FakeAdapter(Adapter):
@@ -187,8 +187,8 @@ def test_end_to_end_real_claude_adapter(tmp_path, monkeypatch):
     import json
     import os
 
-    from retitle.adapters import claude_code
-    from retitle.namers.heuristic import HeuristicNamer
+    from rename.adapters import claude_code
+    from rename.namers.heuristic import HeuristicNamer
 
     projects = tmp_path / "projects"
     proj = projects / "-Users-me-proj"

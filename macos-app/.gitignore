@@ -1,6 +1,6 @@
 .build/
-Retitle.app/
-Retitle-app-macos.zip
+Rename.app/
+Rename-app-macos.zip
 *.xcodeproj/
 .swiftpm/
 Package.resolved

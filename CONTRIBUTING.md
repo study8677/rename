@@ -1,11 +1,11 @@
-# Contributing to retitle
+# Contributing to rename
 
-Thanks for helping out! `retitle` is small, stdlib-only Python — easy to hack on.
+Thanks for helping out! `rename` is small, stdlib-only Python — easy to hack on.
 
 ## Setup
 
 ```bash
-git clone https://github.com/study8677/retitle.git && cd retitle
+git clone https://github.com/study8677/rename.git && cd rename
 pip install -e ".[dev]"
 pytest          # 22 tests, all using synthetic fixtures (never your real data)
 ```
@@ -17,7 +17,7 @@ dependency is `pytest`. Everything uses the Python standard library (`sqlite3`, 
 ## Project layout
 
 ```
-src/retitle/
+src/rename/
 ├── cli.py            # argparse front-end
 ├── engine.py         # the rename decision loop
 ├── config.py         # TOML config + defaults
@@ -38,7 +38,7 @@ src/retitle/
 
 ## Adding support for a new tool
 
-Implement one `Adapter` subclass (see `src/retitle/adapters/base.py`):
+Implement one `Adapter` subclass (see `src/rename/adapters/base.py`):
 
 ```python
 class MyToolAdapter(Adapter):
@@ -78,7 +78,7 @@ Add a round-trip test in `tests/` using a synthetic fixture (see `tests/test_ada
 
 ## Adding a namer
 
-Implement a `Namer` (see `src/retitle/namers/base.py`) with one `generate(...)` method that
+Implement a `Namer` (see `src/rename/namers/base.py`) with one `generate(...)` method that
 returns a short title or `None`. Register it in `namers/__init__.py`.
 
 ## Style
