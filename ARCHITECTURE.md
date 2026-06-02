@@ -141,26 +141,59 @@ TopEntry {                               # field 1 repeated, no base64
 
 For each discovered session, in order:
 
-1. **Idle gate** — if it has been idle for less than `idle_seconds` (default 300),
+1. **Historical gate** — if the state store has a baseline timestamp and the
+   session's `last_active` is older than it, skip. The session existed before
+   retitle started watching this machine; auto-renaming it would be a surprise.
+   The user can override per-pass with `include_historical=True` (the GUI's
+   "Rename historical sessions" button / `retitle once --historical`), or
+   per-session with `--session ID` (a deliberate single-target rename).
+2. **Idle gate** — if it has been idle for less than `idle_seconds` (default 300),
    skip. It's still in use.
-2. **No-activity short-circuit** — if `last_active` is unchanged since we last
+3. **No-activity short-circuit** — if `last_active` is unchanged since we last
    fully evaluated it (`seen_active` in state), skip without re-reading the
    transcript. Cheap; keeps the poll loop light.
-3. **Substance** — skip if there are fewer than `min_user_messages` non-trivial
+4. **Substance** — skip if there are fewer than `min_user_messages` non-trivial
    user messages (acknowledgements, slash-commands and harness/tool noise are
    filtered out in `util.is_trivial` / `is_noise`).
-4. **Unchanged content** — hash the recent transcript (`util.signature`); if it
+5. **Unchanged content** — hash the recent transcript (`util.signature`); if it
    matches the hash tied to the title we last wrote, skip. This makes runs
    idempotent and **respects titles you edit by hand** — until the conversation
    moves on.
-5. Otherwise generate a title, shape it (`util.shape_title`), and write it if it
+6. Otherwise generate a title, shape it (`util.shape_title`), and write it if it
    differs from the current one.
+
+### Baseline timestamp (v0.6.0+)
+
+`state.json` carries a top-level `_meta.baseline_ts` set on the **first
+non-dry-run tick** of the daemon's lifetime on this machine (`StateStore.ensure_baseline`).
+From that moment on, the engine treats any session whose `last_active` predates
+the baseline as **historical** and silently skips it from automatic passes —
+even if its idle/substance/content gates would otherwise approve a rename.
+
+The invariant retitle promises: *installing the daemon never retroactively
+rewrites your existing chat titles without an explicit user action.* Two
+escape hatches exist for the user to opt in:
+
+- **`tick(include_historical=True)`** — bypass the gate for one whole pass.
+  Used by `retitle once --historical` and the dashboard's "Rename historical
+  sessions" button. The CLI also drops `max_age_days` and the batch cap in
+  this mode (`since = 0.0`, `limit = 0`) so the *full* backlog is processed.
+- **`tick(session_filter={…})`** — a per-session override. Per-session forced
+  renames bypass the historical gate because the user explicitly named a
+  single target.
+
+Dry-run passes (`cfg.dry_run = True`) do *not* persist the baseline — so a
+user previewing with `retitle once --dry-run` won't inadvertently lock in a
+baseline they didn't want to commit to.
 
 ## Data-safety design
 
 `retitle` writes to your real session stores, so the rules are conservative:
 
 - **Idle-only.** It only ever touches sessions that have gone quiet.
+- **No retroactive renames without consent.** A baseline timestamp recorded on
+  first run holds back every pre-install chat from the automatic loop
+  ([Baseline timestamp](#baseline-timestamp-v060)).
 - **Title-only.** It appends/updates a single title field and never edits,
   deletes, or reorders conversations.
 - **Read-only reads.** SQLite reads use a `query_only` connection.
