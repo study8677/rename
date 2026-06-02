@@ -6,7 +6,8 @@ content. Conversations drift; their titles shouldn't stay frozen on the first
 message you ever sent.
 """
 
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 try:
     __version__ = _pkg_version("retitle")
