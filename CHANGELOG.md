@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-02
+
 ### Added
 - **Daemon: skip historical sessions by default.** First run records a
   baseline timestamp in `state.json`; only sessions whose `last_active` is at
