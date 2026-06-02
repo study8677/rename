@@ -5,6 +5,15 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-02
+
+### Fixed
+- **`retitle --version` reported the wrong version** (`0.4.1`) because
+  `src/retitle/__init__.py` hard-coded a stale string that was never bumped
+  alongside `pyproject.toml`. The module now reads its version from the
+  installed package metadata (`importlib.metadata.version("retitle")`), so
+  there's only one source of truth — `pyproject.toml`.
+
 ## [0.6.0] - 2026-06-02
 
 ### Added

@@ -6,4 +6,9 @@ content. Conversations drift; their titles shouldn't stay frozen on the first
 message you ever sent.
 """
 
-__version__ = "0.4.1"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("retitle")
+except PackageNotFoundError:  # editable install before metadata exists
+    __version__ = "0.0.0+local"
