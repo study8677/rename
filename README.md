@@ -171,15 +171,20 @@ This makes the whole thing **idempotent** and **safe to run continuously**.
 titles are real LLM summaries of the conversation, with no API key. No CLI
 installed? It falls back to the offline heuristic.
 
-**Rename past sessions on demand.** To work through a backlog without calling your
-CLI on everything at once, a pass renames at most `batch_size` sessions
-(default 25), most-recent first; the daemon finishes the rest over later passes.
+**Safe by default on existing machines.** When you install retitle, the daemon
+records a baseline timestamp and leaves every chat from *before* that moment
+alone. The background loop only renames conversations that become active after
+install — your history is never retroactively touched without consent.
+
+**Rename past sessions on demand.** When you actually want the backlog renamed,
+opt in explicitly. The macOS / Windows dashboard has a **"Rename historical
+sessions"** button with confirm + dry-run, and the CLI mirror is:
 
 ```bash
-retitle once                # rename the latest batch right now
-retitle once --limit 50     # rename the 50 most-recent eligible sessions
-retitle once --all          # rename ALL eligible history (idle 0, any age; slower)
-retitle once --all --dry-run   # preview the whole backlog without writing
+retitle once                          # latest batch only (default behaviour)
+retitle once --historical --dry-run   # preview every pre-install chat
+retitle once --historical             # rename the whole backlog (ignores max-age & batch cap)
+retitle once --session <id>           # force-rename one specific session
 ```
 
 ---
@@ -367,6 +372,10 @@ Any field can be overridden per-invocation: `retitle run --idle 600 --namer anth
   `claude`/`codex` CLI you're already signed into to write the title, so a short transcript
   excerpt goes to that provider (credits you already have — no API key needed). Want nothing to
   leave your machine at all? Set `namer = "heuristic"` and it's 100% offline.
+- **No surprise retroactive renames.** First run records a baseline timestamp;
+  pre-existing chats are skipped by the background loop. Renaming your backlog
+  is a deliberate one-click action (or `retitle once --historical`), never a
+  side-effect of installing the daemon.
 - **It only ever changes titles.** `retitle` reads transcripts and writes a single title field /
   appends a single line. It never edits, deletes, or reorders your conversations.
 - **It's reversible and idempotent.** A bad title is just a title — send a message and it gets
@@ -389,6 +398,12 @@ paste. It spends credits you already have; for zero cost, set `namer = "heuristi
 **Is it safe to run all the time?**
 Yes — that's the design. See [How it works](#how-it-works). The one caveat is editing Cursor's DB
 while Cursor is open (above).
+
+**What happens to my existing chats when I first install retitle?**
+Nothing automatic. First run records a baseline timestamp; the background daemon
+only renames sessions that become active *after* that. If you want your backlog
+processed too, hit **"Rename historical sessions"** in the dashboard or run
+`retitle once --historical --dry-run` to preview, then drop `--dry-run`.
 
 ## Contributing
 
