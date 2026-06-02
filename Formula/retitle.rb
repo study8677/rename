@@ -4,7 +4,7 @@ class Retitle < Formula
   desc "Auto-rename idle Claude Code, Codex, Cursor & Antigravity sessions"
   homepage "https://github.com/study8677/retitle"
   url "https://github.com/study8677/retitle/archive/refs/tags/v0.6.1.tar.gz"
-  sha256 ""  # filled by a follow-up commit after the tag exists
+  sha256 "43800bfb01b55a90fc1bee01c1d7b84c3b1d665c4cf1f3ef64a5e614c2c40d43"
   license "MIT"
   head "https://github.com/study8677/retitle.git", branch: "main"
 
