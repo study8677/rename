@@ -1,10 +1,10 @@
 class Rename < Formula
   include Language::Python::Virtualenv
 
-  desc "Auto-rename idle Claude Code, Codex, Cursor & Antigravity sessions"
+  desc "Keep your AI coding sessions named after what they actually became"
   homepage "https://github.com/study8677/rename"
-  url "https://github.com/study8677/rename/archive/refs/tags/v0.6.1.tar.gz"
-  sha256 "43800bfb01b55a90fc1bee01c1d7b84c3b1d665c4cf1f3ef64a5e614c2c40d43"
+  url "https://github.com/study8677/rename/archive/refs/tags/v1.0.0.tar.gz"
+  sha256 "7442920caf0d9a8f20a0453104682e275a11fae4b276993495e3553b7b65125d"
   license "MIT"
   head "https://github.com/study8677/rename.git", branch: "main"
 
