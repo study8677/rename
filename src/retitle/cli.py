@@ -84,13 +84,22 @@ def cmd_run(args) -> int:
     util.set_verbose(args.verbose)
     if getattr(args, "limit", None) is not None:
         cfg.batch_size = args.limit  # also caps the daemon's per-pass work
+    session_filter: set[str] | None = None
+    if getattr(args, "session", None):
+        session_filter = set(args.session)
+        # Per-session renames are explicit user gestures — bypass idle and
+        # substance gates so they always go through (the engine still skips
+        # "already current" titles, which is what we want).
+        cfg.idle_seconds = 0
+        cfg.min_user_messages = 0
+        cfg.max_age_days = 36500
     adapters, namer, state, engine = _build(cfg)
     if not adapters:
         util.log("no supported tools found on this machine.", level="warn")
         return 1
     if args.once:
         all_ = getattr(args, "all", False)
-        limit = 0 if all_ else getattr(args, "limit", None)
+        limit = 0 if (all_ or session_filter) else getattr(args, "limit", None)
         if all_ and namer.name != "heuristic" and not cfg.dry_run:
             util.log(
                 f"renaming ALL eligible sessions via '{namer.name}' — this can take "
@@ -98,7 +107,9 @@ def cmd_run(args) -> int:
                 "or --namer heuristic for instant offline titles.",
                 level="warn",
             )
-        renamed, total = engine.tick(limit=limit, progress=True)
+        renamed, total = engine.tick(
+            limit=limit, progress=True, session_filter=session_filter
+        )
         util.log(f"done — renamed {renamed} of {total} candidate(s)")
         return 0
     try:
@@ -172,12 +183,7 @@ def cmd_list(args) -> int:
 
 def cmd_status(args) -> int:
     cfg = config_mod.load()
-    print(bold(f"retitle {__version__}"))
-
     cp = util.config_path()
-    cp_note = "" if cp.exists() else dim("  (using defaults; `retitle config` to create)")
-    print(f"  config : {cp}{cp_note}")
-
     sp = util.state_path()
     tracked = 0
     if sp.exists():
@@ -186,9 +192,44 @@ def cmd_status(args) -> int:
             tracked = sum(len(v) for v in data.values())
         except (json.JSONDecodeError, OSError):
             pass
+    resolved = get_namer(cfg).name
+    enabled = set(cfg.tools)
+
+    if getattr(args, "json", False):
+        out = {
+            "version": __version__,
+            "config_path": str(cp),
+            "config_exists": cp.exists(),
+            "state_path": str(sp),
+            "tracked": tracked,
+            "log_path": str(util.log_path()),
+            "namer": cfg.namer,
+            "namer_resolved": resolved,
+            "idle_seconds": cfg.idle_seconds,
+            "poll_seconds": cfg.poll_seconds,
+            "max_age_days": cfg.max_age_days,
+            "min_user_messages": cfg.min_user_messages,
+            "batch_size": cfg.batch_size,
+            "dry_run": cfg.dry_run,
+            "daemon": {"status_line": service.status_line()},
+            "tools": [
+                {
+                    "name": adapter.name,
+                    "label": adapter.label,
+                    "available": adapter.available(),
+                    "enabled": adapter.name in enabled,
+                }
+                for adapter in all_adapters()
+            ],
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0
+
+    print(bold(f"retitle {__version__}"))
+    cp_note = "" if cp.exists() else dim("  (using defaults; `retitle config` to create)")
+    print(f"  config : {cp}{cp_note}")
     print(f"  state  : {sp}  ({tracked} tracked)")
     print(f"  log    : {util.log_path()}")
-    resolved = get_namer(cfg).name
     namer_str = cfg.namer if resolved == cfg.namer else f"{cfg.namer} → {resolved}"
     print(
         f"  config : idle={util.fmt_dur(cfg.idle_seconds)}  "
@@ -197,7 +238,6 @@ def cmd_status(args) -> int:
     print(f"  {service.status_line()}")
 
     print(bold("  tools:"))
-    enabled = set(cfg.tools)
     for adapter in all_adapters():
         avail = green("found") if adapter.available() else dim("not found")
         suffix = "" if adapter.name in enabled else dim("  [disabled in config]")
@@ -453,6 +493,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="rename ALL eligible sessions now (idle 0, no age limit, no batch cap)",
     )
+    po.add_argument(
+        "--session",
+        action="append",
+        metavar="ID",
+        help="rename only sessions with these ids (repeatable); bypasses idle and "
+        "min-message gates so manual one-off renames work even on active or short chats",
+    )
     po.set_defaults(func=cmd_run, once=True)
 
     pl = sub.add_parser("list", help="preview sessions and the titles retitle would set")
@@ -495,6 +542,7 @@ def build_parser() -> argparse.ArgumentParser:
     pstat.set_defaults(func=cmd_stats)
 
     ps = sub.add_parser("status", help="show config, detected tools and daemon status")
+    ps.add_argument("--json", action="store_true", help="output JSON instead of text")
     ps.set_defaults(func=cmd_status)
 
     pc = sub.add_parser("config", help="create/show the config file")

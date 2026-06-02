@@ -138,9 +138,17 @@ class Engine:
         return plans, alive, healthy
 
     # -- the rename pass --------------------------------------------------- #
-    def tick(self, limit: int | None = None, progress: bool = False) -> tuple[int, int]:
+    def tick(
+        self,
+        limit: int | None = None,
+        progress: bool = False,
+        session_filter: set[str] | None = None,
+    ) -> tuple[int, int]:
         """Run one pass. Renames at most `limit` candidates, most-recent first.
         limit=None uses cfg.batch_size; limit=0 (or batch_size 0) means no cap.
+        ``session_filter``, if provided, restricts the pass to sessions whose
+        id is in the set — used by ``retitle once --session ID`` for one-off
+        manual renames from the GUI.
         Returns (renamed, total_candidates)."""
         now_ts = util.now()
         since = now_ts - self.cfg.max_age_days * 86400
@@ -158,6 +166,8 @@ class Engine:
                 continue
             healthy.add(adapter.name)
             for s in sessions:
+                if session_filter is not None and s.id not in session_filter:
+                    continue
                 alive.add((adapter.name, s.id))
                 try:
                     status, sig, msgs = self._assess(adapter, s, now_ts)

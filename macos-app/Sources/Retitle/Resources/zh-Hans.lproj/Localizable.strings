@@ -1,0 +1,36 @@
+/* 菜单栏 */
+"menubar_running" = "retitle 运行中";
+"menubar_paused" = "retitle 已暂停";
+"menubar_loading" = "加载中…";
+"menubar_cli_not_found" = "找不到 retitle 命令";
+"menubar_recent_renames" = "最近改名";
+"menubar_no_recent" = "暂无改名记录——daemon 下一轮扫描时会处理。";
+"menubar_open_dashboard" = "打开仪表盘…";
+"menubar_pause_daemon" = "暂停后台服务";
+"menubar_resume_daemon" = "恢复后台服务";
+"menubar_refresh_now" = "立即刷新";
+"menubar_show_log" = "查看日志";
+"menubar_quit" = "退出 Retitle";
+
+/* 仪表盘窗口 */
+"dash_tracked" = "已追踪";
+"dash_total_sessions" = "会话总数";
+"dash_stale" = "待处理(空闲 ≥ 5 分钟)";
+"dash_renamed_lifetime" = "累计改名";
+"dash_daemon_running" = "后台运行中";
+"dash_daemon_stopped" = "后台已停止";
+"dash_filter_all" = "全部";
+"dash_search_placeholder" = "搜索标题 / 路径";
+"dash_loading" = "加载会话中…";
+"dash_no_sessions" = "当前过滤条件下没有会话。";
+"dash_refresh" = "刷新";
+"dash_pause_daemon" = "暂停";
+"dash_resume_daemon" = "恢复";
+"dash_open_config" = "打开配置";
+"dash_show_log" = "查看日志";
+"dash_rename_now_tooltip" = "立即给这个会话改名(跳过空闲闸门)";
+
+/* 错误 */
+"retitle_not_found" = "找不到 retitle 命令。请用 pipx install retitle 安装,或设置 RETITLE_BIN 环境变量。";
+"retitle_command_failed_%d_%@" = "retitle 退出码 %d: %@";
+"retitle_decode_failed_%@" = "无法解析 retitle 输出: %@";

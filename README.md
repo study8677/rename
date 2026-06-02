@@ -238,6 +238,46 @@ retitle status        # shows what auto resolved to, e.g. "namer=auto → claude
 
 ---
 
+## Optional: native macOS app (menu bar + dashboard)
+
+`retitle` ships a small **SwiftUI app** in [`macos-app/`](macos-app/) so you don't
+have to live in the terminal to see what the daemon is doing. It's a thin viewer
+over the CLI — all the real work still happens in the Python daemon you already
+installed with `retitle install`.
+
+**What you get**
+
+- **Menu bar icon** — running/paused indicator, the last 5 renames (old → new
+  title), Pause/Resume daemon, Refresh now, Open dashboard, Quit
+- **Dashboard window** — stats header (tracked / sessions / stale / lifetime
+  renames), tool filter (All / Claude Code / Codex / Cursor / Antigravity),
+  per-session search, table of every session with the proposed new title and
+  a per-row "Rename now" button (bypasses the idle gate for that one
+  conversation), one-click access to config + log
+
+**Build & run** (needs only Command Line Tools, no full Xcode):
+
+```bash
+# from the repo root
+cd macos-app
+./build-app.sh
+open Retitle.app
+```
+
+Drag `Retitle.app` into `~/Applications` and add it to **Login Items** to
+keep the menu bar icon around between reboots. The app is a `LSUIElement`
+— it lives in the menu bar only, never appears in the Dock or ⌘-Tab.
+
+**Localization** — English and 简体中文, follows your system language.
+
+**Architecture** — Swift + SwiftUI, ~1k LOC. Talks to the Python CLI through
+`Process` + JSON (`retitle status --json`, `retitle list --json`,
+`retitle stats --json`, `retitle once --session <id>`). Daemon control is
+plain `launchctl load / unload` on the existing `.plist`. No new state, no
+new storage — the CLI stays the single source of truth.
+
+---
+
 ## Configuration
 
 `retitle config` creates and prints `~/.config/retitle/config.toml`:

@@ -1,0 +1,36 @@
+/* Menu bar */
+"menubar_running" = "retitle is running";
+"menubar_paused" = "retitle is paused";
+"menubar_loading" = "Loading…";
+"menubar_cli_not_found" = "retitle CLI not found";
+"menubar_recent_renames" = "Recent renames";
+"menubar_no_recent" = "Nothing renamed yet — the daemon will catch up on its next pass.";
+"menubar_open_dashboard" = "Open Dashboard…";
+"menubar_pause_daemon" = "Pause daemon";
+"menubar_resume_daemon" = "Resume daemon";
+"menubar_refresh_now" = "Refresh now";
+"menubar_show_log" = "Show log";
+"menubar_quit" = "Quit Retitle";
+
+/* Dashboard window */
+"dash_tracked" = "Tracked";
+"dash_total_sessions" = "Sessions";
+"dash_stale" = "Stale (idle ≥ 5m)";
+"dash_renamed_lifetime" = "Renamed (lifetime)";
+"dash_daemon_running" = "Daemon running";
+"dash_daemon_stopped" = "Daemon stopped";
+"dash_filter_all" = "All";
+"dash_search_placeholder" = "Search titles & paths";
+"dash_loading" = "Loading sessions…";
+"dash_no_sessions" = "No sessions match this filter.";
+"dash_refresh" = "Refresh";
+"dash_pause_daemon" = "Pause";
+"dash_resume_daemon" = "Resume";
+"dash_open_config" = "Open config";
+"dash_show_log" = "Show log";
+"dash_rename_now_tooltip" = "Rename this session now (bypasses idle gate)";
+
+/* Errors */
+"retitle_not_found" = "retitle command not found. Install it with: pipx install retitle (or set RETITLE_BIN).";
+"retitle_command_failed_%d_%@" = "retitle exited with code %d: %@";
+"retitle_decode_failed_%@" = "Could not decode retitle output: %@";

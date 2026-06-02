@@ -30,6 +30,16 @@ All notable changes to this project are documented here. Format loosely follows
   [@xiongaox](https://github.com/xiongaox) for filing it AND for sharing the
   Companion App `.pb` that unlocked the second store format — the issue is
   what made the whole Antigravity adapter possible.
+- **Optional native macOS app** in `macos-app/` — a Swift + SwiftUI menu-bar
+  app (with a dashboard window) that talks to the existing Python CLI through
+  JSON. Lets you see what the daemon is doing without leaving the menu bar:
+  status, the last 5 renames, per-session "Rename now", pause/resume, and one-
+  click access to config + log. Localized in English and 简体中文. Builds with
+  just Command Line Tools (`./build-app.sh` → `Retitle.app`).
+- `retitle status --json` — structured output so the GUI can read config,
+  detected tools, namer resolution and daemon state.
+- `retitle once --session ID` (repeatable) — rename one specific session,
+  bypassing the idle and substance gates. Powers the GUI "Rename now" button.
 
 ## [0.4.1] - 2026-05-30
 

@@ -228,6 +228,43 @@ retitle status        # 会显示 auto 实际解析到了谁，例如 "namer=aut
 
 ---
 
+## 可选:原生 macOS app(菜单栏 + 仪表盘)
+
+仓库里带了一个 **SwiftUI 写的小 app**,在 [`macos-app/`](macos-app/) 目录下,
+方便你不进终端也能看到 daemon 在干什么。它只是 CLI 的一层 viewer——所有真正的
+工作还是 Python daemon 在做(你之前 `retitle install` 装好的那个)。
+
+**功能**
+
+- **菜单栏图标** — 运行/暂停状态、最近 5 次改名(旧标题 → 新标题)、暂停/恢复
+  daemon、立即刷新、打开仪表盘、退出
+- **仪表盘窗口** — 顶部统计(已追踪 / 会话数 / 待处理 / 累计改名);工具过滤
+  (全部 / Claude Code / Codex / Cursor / Antigravity);搜索框;每个会话一行,
+  显示当前标题、即将改成的新标题、cwd、空闲时长,**每行有 "立即改名" 按钮**
+  (跳过空闲闸门,只针对这一个会话);一键打开配置 / 日志
+
+**构建并运行**(只需 Command Line Tools,不需要完整 Xcode):
+
+```bash
+# 在仓库根目录
+cd macos-app
+./build-app.sh
+open Retitle.app
+```
+
+把 `Retitle.app` 拖到 `~/Applications`,然后在系统**登录项**里加上它,
+重启之后菜单栏图标会自动出现。这个 app 设了 `LSUIElement`——只在菜单栏出现,
+不在 Dock 或 ⌘-Tab 里显示。
+
+**国际化** — 支持英文和简体中文,跟随系统语言自动切换。
+
+**架构** — Swift + SwiftUI,~1k 行代码。通过 `Process` + JSON 调用 Python CLI
+(`retitle status --json` / `list --json` / `stats --json` / `once --session <id>`)。
+Daemon 控制就是给现有 `.plist` 调 `launchctl load / unload`。没有新增任何
+状态或存储——CLI 仍然是唯一的真理来源。
+
+---
+
 ## 配置
 
 `retitle config` 会创建并打印 `~/.config/retitle/config.toml`：
