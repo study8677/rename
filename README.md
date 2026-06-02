@@ -25,7 +25,7 @@ mine that history: find any past session across Claude Code, Codex and Cursor at
 [![Supported tools](https://img.shields.io/badge/tools-8-9c27b0.svg)](#supported-tools)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-orange.svg)](CONTRIBUTING.md)
 
-**English** · [简体中文](README.zh-CN.md)
+**English** · [简体中文](README.zh-CN.md) · [Cookbook](docs/COOKBOOK.md)
 
 </div>
 

@@ -24,7 +24,7 @@ Codex、Cursor 里找回任何过去的会话。
 [![Supported tools](https://img.shields.io/badge/tools-8-9c27b0.svg)](#支持的工具)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-orange.svg)](CONTRIBUTING.md)
 
-[English](README.md) · **简体中文**
+[English](README.md) · **简体中文** · [使用配方](docs/COOKBOOK.md)
 
 </div>
 
