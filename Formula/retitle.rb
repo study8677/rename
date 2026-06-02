@@ -4,10 +4,7 @@ class Retitle < Formula
   desc "Auto-rename idle Claude Code, Codex, Cursor & Antigravity sessions"
   homepage "https://github.com/study8677/retitle"
   url "https://github.com/study8677/retitle/archive/refs/tags/v0.6.0.tar.gz"
-  # SHA256 placeholder — populated by `make brew-formula-sha` after release.
-  # The CI release workflow updates this automatically; until then, install
-  # from HEAD with `brew install --HEAD study8677/retitle/retitle`.
-  sha256 ""
+  sha256 "d1927b734ff5271704eb1efe93ecd3bf7a932734b264e43dbd8d0e651763a143"
   license "MIT"
   head "https://github.com/study8677/retitle.git", branch: "main"
 
