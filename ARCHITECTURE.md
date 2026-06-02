@@ -65,52 +65,77 @@ not officially documented. Each adapter isolates the quirks below.
 - **Write:** both copies, in a single `BEGIN IMMEDIATE` transaction, with rollback
   on any error (see *Data-safety design*).
 
-### Antigravity  ⚠️ experimental — read-only for naming
+### Antigravity  ⚠️ experimental
 
-Antigravity (Google) is a VS Code fork with a Gemini-powered chat sidebar. It
-splits its data across two stores:
+Antigravity (Google) ships in two flavors that store conversation summaries
+in **different places** but share the same protobuf schema:
 
-- **Conversation transcripts** at `~/.gemini/antigravity/conversations/<uuid>.pb`
-  are **encrypted at rest** — uniform-byte ciphertext, key held by the OS
-  keychain. We cannot read them.
-- **Title + metadata index** lives in `state.vscdb`, key
-  `antigravityUnifiedStateSync.trajectorySummaries`. The value is a
-  base64-encoded protobuf with **plaintext titles**, reverse-engineered from
-  Antigravity 2.0's bundled `FileDescriptorProto` (search the JS bundle for
-  `CascadeTrajectorySummary` to see the canonical schema). Layered shape:
+- **IDE** (the VS Code fork with a Gemini-powered chat sidebar): titles live in
+  `state.vscdb` under `antigravityUnifiedStateSync.trajectorySummaries`, a
+  base64-encoded protobuf with **plaintext titles**.
+- **Companion App** (standalone desktop client, Windows-only): titles live in
+  `~/.gemini/antigravity/agyhub_summaries_proto.pb`, a raw protobuf file —
+  no base64, no envelope wrapping.
 
-  ```
-  Envelope                              # base64 → repeated field 1
-    TopEntry { key=uuid, value=Wrapper }
-      Wrapper { value @ 1 = base64(   # yes, base64 inside base64 — that's
-                  CascadeTrajectorySummary  # how unifiedStateSync stores it
-              ) }
-        CascadeTrajectorySummary {
-          string  summary @ 1                    # ← the title
-          uint32  step_count @ 2
-          Timestamp last_modified_time @ 3
-          string  trajectory_id @ 4
-          enum    status @ 5
-          Timestamp created_time @ 7
-          Workspaces workspaces @ 9
-          Timestamp last_user_input_time @ 10
-          …
-        }
-  ```
+Conversation **transcripts** in either flavor live at
+`~/.gemini/antigravity/conversations/<uuid>.pb` and are **encrypted at rest**
+(uniform-byte ciphertext, key held by the OS keychain). We cannot read them.
 
-- **Title:** `CascadeTrajectorySummary.summary` (field 1).
-- **Transcript:** we return `[]` — see above. The engine's substance gate then
-  skips Antigravity sessions in the rename loop, which is what we want
-  (Antigravity already auto-titles its own conversations). `retitle list` /
-  `search` / `stats` still surface them. Manual rename via
-  `retitle once --tool antigravity` works.
-- **Write:** rewrite the one matching `CascadeTrajectorySummary.summary` inside
-  the layered envelope and `UPDATE ItemTable` under `BEGIN IMMEDIATE`. The proto
-  is hand-encoded (varints + length-prefixed fields) in
-  [`_proto.py`](src/retitle/adapters/_proto.py) — zero deps, ~80 lines.
-- **Caveat:** `trajectorySummaries` is a synced store; a local write may be
-  overwritten by cloud sync or pushed to other devices. Treat as best-effort
-  while Antigravity is running.
+Both stores share the same `CascadeTrajectorySummary` schema, reverse-engineered
+from Antigravity 2.0's bundled `FileDescriptorProto` (search the JS bundle for
+`CascadeTrajectorySummary`):
+
+```
+CascadeTrajectorySummary {
+  string    summary @ 1                  # ← the title
+  uint32    step_count @ 2
+  Timestamp last_modified_time @ 3
+  string    trajectory_id @ 4
+  enum      status @ 5
+  Timestamp created_time @ 7
+  Workspaces workspaces @ 9
+  Timestamp last_user_input_time @ 10
+  …
+}
+```
+
+The two stores differ only in how entries are wrapped:
+
+```
+# IDE store — antigravityUnifiedStateSync.trajectorySummaries
+base64( Envelope {                       # field 1 repeated
+  TopEntry { key=uuid, value=Wrapper }
+    Wrapper { value @ 1 = base64(        # yes, base64 inside base64 —
+                CascadeTrajectorySummary # that's how unifiedStateSync
+            ) }                          # encodes its synced values
+})
+
+# Companion App store — agyhub_summaries_proto.pb (raw bytes on disk)
+TopEntry {                               # field 1 repeated, no base64
+  uuid @ 1
+  CascadeTrajectorySummary @ 2           # directly, no inner base64
+}
+```
+
+- **Title:** `CascadeTrajectorySummary.summary` (field 1) in either flavor.
+- **Transcript:** the raw chat is encrypted, but Antigravity's agent writes
+  plaintext working artifacts to `~/.gemini/antigravity/brain/<uuid>/`
+  (`task.md`, `implementation_plan.md`, `walkthrough.md`, each with a
+  `*.metadata.json` sidecar carrying a `summary`). We feed those to the namer.
+  Sessions without brain artifacts (early/short chats) get an empty transcript;
+  the substance gate then skips them, which is what we want — Antigravity's own
+  auto-titler already handles the short-chat case.
+- **Write (IDE):** rewrite the one matching `CascadeTrajectorySummary.summary`
+  inside the layered envelope and `UPDATE ItemTable` under `BEGIN IMMEDIATE`.
+- **Write (Companion):** rewrite the matching entry in the raw `.pb` and replace
+  the file atomically (write to `*.retitle.tmp`, then `os.replace`).
+- **Proto codec:** hand-rolled in [`_proto.py`](src/retitle/adapters/_proto.py)
+  — varints + length-prefixed fields, ~80 lines of stdlib.
+- **Caveats:** The IDE store is a *synced* store; a local write may be
+  overwritten by cloud sync or pushed to other devices. The Companion store is
+  a single file rewritten by atomic rename — on Windows, an exclusive handle
+  held by a running Companion can cause the rename to fail; close the app and
+  retry. Treat both as best-effort while Antigravity is running.
 
 ## The rename decision
 

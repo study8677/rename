@@ -447,6 +447,178 @@ def test_antigravity_set_title_unknown_id_rolls_back(tmp_path, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+# Antigravity — Companion App (raw .pb file, no base64/envelope)
+# --------------------------------------------------------------------------- #
+def _ag_make_pb_bytes(entries: list[tuple[str, bytes]]) -> bytes:
+    """Build a Companion App agyhub_summaries_proto.pb payload.
+
+    Top-level: repeated TopEntry @ field 1. TopEntry: {uuid @ 1, inner @ 2}
+    where ``inner`` is the CascadeTrajectorySummary directly (no base64).
+    """
+    out = bytearray()
+    for uid, inner_bytes in entries:
+        entry = (
+            _proto.encode_len_field(1, uid.encode("ascii"))
+            + _proto.encode_len_field(2, inner_bytes)
+        )
+        out += _proto.encode_len_field(1, entry)
+    return bytes(out)
+
+
+def _ag_make_pb_file(tmp_path, entries) -> "object":
+    pb = tmp_path / "agyhub_summaries_proto.pb"
+    pb.write_bytes(_ag_make_pb_bytes(entries))
+    return pb
+
+
+def test_antigravity_companion_discover_and_set_title(tmp_path, monkeypatch):
+    uid_a = "aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa"
+    uid_b = "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb"
+    now = int(time.time())
+    entries = [
+        (uid_a, _ag_make_summary(summary="Stale title A", trajectory_id=uid_a,
+                                 last_user_input=now - 200)),
+        (uid_b, _ag_make_summary(summary="Stale title B", trajectory_id=uid_b,
+                                 last_user_input=now - 100)),
+    ]
+    pb = _ag_make_pb_file(tmp_path, entries)
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+    adapter = antigravity.AntigravityAdapter()
+
+    assert adapter.available() is True
+    sessions = adapter.discover(0)
+    by_id = {s.id: s for s in sessions}
+    assert set(by_id) == {uid_a, uid_b}
+    assert by_id[uid_a].title == "Stale title A"
+    assert by_id[uid_a].meta["store"] == "companion"
+    assert by_id[uid_a].meta["pb"] == str(pb)
+    assert abs(by_id[uid_a].last_active - (now - 200)) < 1
+
+    # Rename A; B must remain untouched, file structure must round-trip.
+    adapter.set_title(by_id[uid_a], "Renamed A")
+    sessions2 = adapter.discover(0)
+    by_id2 = {s.id: s for s in sessions2}
+    assert by_id2[uid_a].title == "Renamed A"
+    assert by_id2[uid_b].title == "Stale title B"
+
+
+def test_antigravity_companion_unicode_title(tmp_path, monkeypatch):
+    uid = "cccccccc-3333-3333-3333-cccccccccccc"
+    pb = _ag_make_pb_file(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="x", trajectory_id=uid,
+                                last_user_input=int(time.time())))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+    adapter = antigravity.AntigravityAdapter()
+    s = adapter.discover(0)[0]
+    adapter.set_title(s, "重构支付回调 ✨")
+    s2 = adapter.discover(0)[0]
+    assert s2.title == "重构支付回调 ✨"
+
+
+def test_antigravity_companion_set_title_unknown_id_is_safe_noop(tmp_path, monkeypatch):
+    uid = "dddddddd-4444-4444-4444-dddddddddddd"
+    other = "eeeeeeee-5555-5555-5555-eeeeeeeeeeee"
+    pb = _ag_make_pb_file(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="Only one", trajectory_id=uid, last_user_input=1))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+    adapter = antigravity.AntigravityAdapter()
+    original_bytes = pb.read_bytes()
+
+    from retitle.models import Session
+
+    s = Session(
+        tool="antigravity",
+        id=other,
+        title="X",
+        last_active=0,
+        meta={"store": "companion", "pb": str(pb)},
+    )
+    adapter.set_title(s, "Should not appear")
+    # No matching entry → rewrite is a no-op; file content is byte-identical.
+    assert pb.read_bytes() == original_bytes
+    sessions = adapter.discover(0)
+    assert sessions[0].title == "Only one"
+
+
+def test_antigravity_companion_malformed_file_survives(tmp_path, monkeypatch):
+    pb = tmp_path / "agyhub_summaries_proto.pb"
+    pb.write_bytes(b"\xff\xff\xff not a valid protobuf at all")
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+    adapter = antigravity.AntigravityAdapter()
+    assert adapter.available() is True
+    # Malformed bytes must not crash discover().
+    assert adapter.discover(0) == []
+
+
+def test_antigravity_companion_brain_transcript(tmp_path, monkeypatch):
+    """Brain artifacts work the same for Companion-store sessions."""
+    uid = "ffffffff-6666-6666-6666-ffffffffffff"
+    pb = _ag_make_pb_file(
+        tmp_path,
+        [(uid, _ag_make_summary(summary="stale", trajectory_id=uid, last_user_input=1))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: None)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+
+    brain = tmp_path / "brain" / uid
+    brain.mkdir(parents=True)
+    (brain / "implementation_plan.md.metadata.json").write_text(
+        json.dumps(
+            {
+                "artifactType": "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+                "summary": "Add CSV export to the invoice dashboard.",
+            }
+        )
+    )
+    (brain / "implementation_plan.md").write_text(
+        "# Implementation plan\n\nWire a CSV export button into the invoice list page.\n"
+    )
+    monkeypatch.setattr(antigravity, "_BRAIN_DIR", tmp_path / "brain")
+
+    adapter = antigravity.AntigravityAdapter()
+    s = adapter.discover(0)[0]
+    msgs = adapter.read_transcript(s)
+    assert msgs, "brain artifacts should produce a non-empty transcript"
+    joined = " ".join(m.text for m in msgs)
+    assert "CSV export" in joined
+    assert all(m.role == "user" for m in msgs)
+
+
+def test_antigravity_both_stores_listed_together(tmp_path, monkeypatch):
+    """When IDE and Companion stores both exist, sessions from both show up."""
+    uid_ide = "11111111-1111-1111-1111-111111111111"
+    uid_app = "22222222-2222-2222-2222-222222222222"
+    db = _ag_make_db(
+        tmp_path,
+        [(uid_ide, _ag_make_summary(summary="IDE session", trajectory_id=uid_ide,
+                                    last_user_input=1))],
+    )
+    pb_dir = tmp_path / "companion"
+    pb_dir.mkdir()
+    pb = _ag_make_pb_file(
+        pb_dir,
+        [(uid_app, _ag_make_summary(summary="Companion session", trajectory_id=uid_app,
+                                    last_user_input=2))],
+    )
+    monkeypatch.setattr(antigravity, "_state_vscdb", lambda: db)
+    monkeypatch.setattr(antigravity, "_companion_pb", lambda: pb)
+    adapter = antigravity.AntigravityAdapter()
+    sessions = adapter.discover(0)
+    by_id = {s.id: s for s in sessions}
+    assert set(by_id) == {uid_ide, uid_app}
+    assert by_id[uid_ide].meta["store"] == "vscdb"
+    assert by_id[uid_app].meta["store"] == "companion"
+
+
+# --------------------------------------------------------------------------- #
 # Robustness: malformed / missing data must degrade gracefully, not crash
 # --------------------------------------------------------------------------- #
 def test_claude_skips_corrupt_lines(tmp_path, monkeypatch):

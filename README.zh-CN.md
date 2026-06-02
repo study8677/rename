@@ -167,7 +167,7 @@ retitle once --all --dry-run   # 预览整个积压，不写入
 | **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | 追加一行 `ai-title`（纯追加——最安全的写法） | ✅ 稳定 |
 | **Codex** | `~/.codex/state_*.sqlite` + rollout 文件 | `UPDATE threads SET title` | ✅ 稳定 |
 | **Cursor** | `state.vscdb`（`composerHeaders` + `composerData`） | 同时更新两处标题字段 | ⚠️ 实验性 |
-| **Antigravity** *(Google)* | `state.vscdb`（`antigravityUnifiedStateSync.trajectorySummaries`） | 重写对应 `CascadeTrajectorySummary` 的 `summary` 字段 | ⚠️ 实验性 — [只支持手动改名](#antigravity-说明) |
+| **Antigravity** *(Google)* | IDE: `state.vscdb`（`antigravityUnifiedStateSync.trajectorySummaries`）— Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | 重写对应 `CascadeTrajectorySummary` 的 `summary` 字段（Companion 走原子 rename 重写文件） | ⚠️ 实验性 — [看说明](#antigravity-说明) |
 
 > **关于「应用开着时写入」。** Codex、Cursor 和 Antigravity 都把数据存在正在使用的 SQLite
 > 数据库里。`retitle` 写入很谨慎（读取走只读连接、写入设了 `busy_timeout`），而且只碰
@@ -177,14 +177,18 @@ retitle once --all --dry-run   # 预览整个积压，不写入
 
 ### Antigravity 说明
 
-Antigravity 是 VS Code 的分支。它的对话正文存在
-`~/.gemini/antigravity/conversations/<uuid>.pb`，**磁盘上是加密的**（字节分布完全均匀，
-密钥由系统 keychain 托管）。但**侧边栏显示的标题不在那里读**——它从
-`state.vscdb` 的 `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` 这一行
-读,里面是一个 base64-protobuf,**标题以明文存放**——和 Cursor 完全是同一个模式。
+Antigravity 有两个形态——**IDE 版**(基于 VS Code 的客户端,带 Gemini 侧边栏)和
+**Companion App**(独立桌面端,Windows-only)。`retitle` 两种都支持:
 
-`retitle` 直接 SQL `UPDATE` 这一行(不解密、不写扩展、不动 keychain)。虽然对话正文加密,
-但 Antigravity 的 agent 在工作时会把自己写的明文工作文档放在
+| 形态 | 标题存储位置 | 格式 |
+|---|---|---|
+| IDE | `state.vscdb` → `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` | base64(envelope(base64(`CascadeTrajectorySummary`)))——和 Cursor 一样套两层 base64 |
+| Companion App | `~/.gemini/antigravity/agyhub_summaries_proto.pb` | 裸 protobuf,`repeated TopEntry { uuid; CascadeTrajectorySummary }` |
+
+两种形态共享同一个 `CascadeTrajectorySummary` schema(从 Antigravity 2.0 的
+`FileDescriptorProto` 反编译来),只是外层封装不同。IDE 走 SQL `UPDATE`,Companion
+走「写临时文件 + 原子 rename」。两种形态的对话正文(`~/.gemini/antigravity/conversations/<uuid>.pb`)
+都是**加密**的,但 Antigravity 的 agent 都会把自己写的明文工作文档放在
 `~/.gemini/antigravity/brain/<uuid>/` 下(`task.md`、`implementation_plan.md`、
 `walkthrough.md`,以及对应的 `*.metadata.json` 摘要)——这些就是 `retitle` 喂给 namer
 用来重新起标题的素材。
@@ -312,7 +316,8 @@ pytest
 
 - **[@xiongaox](https://github.com/xiongaox)** 提出了 [#1](https://github.com/study8677/retitle/issues/1)
   要求支持 Antigravity——正是这个 issue 推着我把整套 Antigravity 适配器做了出来:从反编译
-  protobuf schema,到发现 `brain/` 明文素材,全都源自这个起点。谢谢 🙏。
+  protobuf schema,到发现 `brain/` 明文素材,再到他后来把 Companion App 的 `.pb` 上传到
+  issue,直接解锁了 Companion 那条路径——全都源自这个起点。谢谢 🙏。
 
 ## 许可证
 

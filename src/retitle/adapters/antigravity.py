@@ -1,29 +1,35 @@
 """Antigravity adapter.
 
-Google's Antigravity stores conversation summaries in the VS Code-style
-``state.vscdb`` SQLite database, under
-``ItemTable['antigravityUnifiedStateSync.trajectorySummaries']``. The value is
-a base64-encoded protobuf with this layered shape (reverse-engineered from
-Antigravity 2.0's bundled file descriptor):
+Google's Antigravity comes in two flavors that store conversation summaries
+in different places:
 
-  Envelope                             # repeated field 1
-    Entry { string key = 1;            # the trajectory UUID
-            Value value = 2 }          # nested wrapper
-      Value { string value = 1 }       # itself a base64 string …
-        base64-decoded →
-        CascadeTrajectorySummary {
-          string  summary             = 1   # ← THE TITLE
-          uint32  step_count          = 2
-          Timestamp last_modified_time = 3
-          string  trajectory_id       = 4
-          enum    status              = 5
-          Timestamp created_time      = 7
-          Workspaces workspaces       = 9   # repeated WorkspaceFolder
-          Timestamp last_user_input_time = 10
-          …                                  # plus more metadata fields
-        }
+* **IDE** (VS Code-based): a VS Code-style ``state.vscdb`` SQLite database at
+  ``~/Library/Application Support/Antigravity/...`` (macOS) or
+  ``%APPDATA%/Antigravity/...`` (Windows). The
+  ``antigravityUnifiedStateSync.trajectorySummaries`` row holds a base64
+  envelope nested over another base64 wrapper.
+* **Companion App** (standalone): a raw protobuf file at
+  ``~/.gemini/antigravity/agyhub_summaries_proto.pb``. Same
+  ``CascadeTrajectorySummary`` schema as the IDE store, but without the
+  base64/envelope wrapping — entries are stored directly as
+  ``repeated TopEntry { string uuid = 1; CascadeTrajectorySummary value = 2 }``.
 
-Conversation transcripts (the chat messages themselves) live at
+Schema (reverse-engineered from Antigravity 2.0's bundled file descriptor and
+verified against a Companion App ``.pb`` shared on issue #1):
+
+  CascadeTrajectorySummary {
+    string    summary              = 1   # ← THE TITLE
+    uint32    step_count           = 2
+    Timestamp last_modified_time   = 3
+    string    trajectory_id        = 4
+    enum      status               = 5
+    Timestamp created_time         = 7
+    Workspaces workspaces          = 9   # repeated WorkspaceFolder
+    Timestamp last_user_input_time = 10
+    …                                     # plus more metadata fields
+  }
+
+Conversation transcripts (the raw chat messages) live at
 ``~/.gemini/antigravity/conversations/<uuid>.pb`` and are encrypted at rest,
 so we never see the raw chat. But Antigravity's agent ALSO writes plain-text
 working artifacts to ``~/.gemini/antigravity/brain/<uuid>/`` while it works
@@ -33,9 +39,12 @@ with a ``*.metadata.json`` sidecar carrying a human-readable ``summary``.
 produce a fresh title when Antigravity's own auto-title has gone stale.
 
 Caveats:
-  * ``trajectorySummaries`` is a *synced* store (``unifiedStateSync``). A
-    local write may be overwritten by cloud sync, or get pushed to other
-    devices. Treat ``set_title`` as best-effort while Antigravity is running.
+  * The IDE store is a *synced* store (``unifiedStateSync``). A local write
+    may be overwritten by cloud sync, or get pushed to other devices. Treat
+    ``set_title`` as best-effort while Antigravity is running.
+  * The Companion App store is a single file rewritten by atomic rename. On
+    Windows, an exclusive file handle held by a running Companion can cause
+    the rename to fail; close the app, or wait until it's idle, and retry.
   * Conversations that haven't produced brain artifacts yet (early/short
     chats) yield no transcript — the substance gate will skip those.
 """
@@ -55,6 +64,7 @@ from .base import Adapter
 
 _KEY = "antigravityUnifiedStateSync.trajectorySummaries"
 _BRAIN_DIR = Path.home() / ".gemini/antigravity/brain"
+_COMPANION_PB = Path.home() / ".gemini/antigravity/agyhub_summaries_proto.pb"
 
 # Per-artifact and total caps so a giant implementation_plan.md doesn't blow
 # the namer's prompt budget. The namer's build_excerpt also trims further.
@@ -69,6 +79,9 @@ _F_LAST_USER_INPUT = 10
 _F_LAST_MODIFIED = 3
 
 
+# --------------------------------------------------------------------------- #
+# Store discovery
+# --------------------------------------------------------------------------- #
 def _state_vscdb() -> Path | None:
     candidates = [
         Path.home()
@@ -84,7 +97,19 @@ def _state_vscdb() -> Path | None:
     return None
 
 
-def _parse_entries(envelope_b64: str) -> list[tuple[str, bytes]]:
+def _companion_pb() -> Path | None:
+    """The Companion App's local store, if present.
+
+    The path is the same on every platform — the Companion uses ``~/.gemini``
+    rather than per-OS application directories.
+    """
+    return _COMPANION_PB if _COMPANION_PB.exists() else None
+
+
+# --------------------------------------------------------------------------- #
+# Parsing — IDE (base64 envelope + base64 wrapper)
+# --------------------------------------------------------------------------- #
+def _parse_vscdb_entries(envelope_b64: str) -> list[tuple[str, bytes]]:
     """Decode the SQLite text -> [(uuid, CascadeTrajectorySummary-bytes), …]."""
     try:
         envelope = base64.b64decode(envelope_b64)
@@ -120,6 +145,43 @@ def _parse_entries(envelope_b64: str) -> list[tuple[str, bytes]]:
     return out
 
 
+# --------------------------------------------------------------------------- #
+# Parsing — Companion App (raw protobuf, no base64)
+# --------------------------------------------------------------------------- #
+def _parse_pb_entries(pb_bytes: bytes) -> list[tuple[str, bytes]]:
+    """Decode the Companion App's raw .pb -> [(uuid, CascadeTrajectorySummary-bytes), …].
+
+    Top-level structure is just ``repeated TopEntry`` — no base64, no
+    envelope wrapper. TopEntry's value (field 2) is the CascadeTrajectorySummary
+    directly (the IDE store wraps it in an extra base64 layer; the Companion
+    doesn't bother).
+    """
+    out: list[tuple[str, bytes]] = []
+    try:
+        top = list(_proto.iter_fields(pb_bytes))
+    except (ValueError, IndexError):
+        return []
+    for fn, wt, val, *_ in top:
+        if fn != 1 or wt != _proto.WIRE_LEN:
+            continue
+        uid = None
+        inner = None
+        try:
+            for f2, w2, v2, *_ in _proto.iter_fields(val):
+                if f2 == 1 and w2 == _proto.WIRE_LEN:
+                    uid = v2.decode("utf-8", errors="replace")
+                elif f2 == 2 and w2 == _proto.WIRE_LEN:
+                    inner = v2
+        except (ValueError, IndexError):
+            continue
+        if uid and inner is not None:
+            out.append((uid, inner))
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# Shared CascadeTrajectorySummary helpers
+# --------------------------------------------------------------------------- #
 def _first_workspace_uri(workspaces_blob: bytes | None) -> str | None:
     """Return the first workspace folder URI from a Workspaces message, if any.
 
@@ -162,21 +224,32 @@ def _summary_field(inner: bytes, field_num: int):
     return None
 
 
-def _rewrite_summary(envelope_b64: str, target_uid: str, new_summary: str) -> str:
+def _rewrite_inner_summary(inner: bytes, new_summary_bytes: bytes) -> bytes:
+    """Replace field 1 (summary) inside CascadeTrajectorySummary."""
+    return _proto.rewrite(
+        inner,
+        when=lambda fn, wt, val: fn == _F_SUMMARY and wt == _proto.WIRE_LEN,
+        replace=lambda _fn, _wt, _val: _proto.encode_len_field(
+            _F_SUMMARY, new_summary_bytes
+        ),
+    )
+
+
+def _entry_matches(entry_bytes: bytes, target_uid_bytes: bytes) -> bool:
+    for f2, w2, v2, *_ in _proto.iter_fields(entry_bytes):
+        if f2 == 1 and w2 == _proto.WIRE_LEN and v2 == target_uid_bytes:
+            return True
+    return False
+
+
+# --------------------------------------------------------------------------- #
+# Rewriting — IDE (base64 envelope + base64 wrapper)
+# --------------------------------------------------------------------------- #
+def _rewrite_vscdb_summary(envelope_b64: str, target_uid: str, new_summary: str) -> str:
     """Return a new base64 envelope with ``target_uid``'s summary field replaced."""
     envelope = base64.b64decode(envelope_b64)
     target_uid_bytes = target_uid.encode("utf-8")
     new_summary_bytes = new_summary.encode("utf-8")
-
-    def rewrite_inner(inner: bytes) -> bytes:
-        # Replace field 1 (summary) inside CascadeTrajectorySummary.
-        return _proto.rewrite(
-            inner,
-            when=lambda fn, wt, val: fn == _F_SUMMARY and wt == _proto.WIRE_LEN,
-            replace=lambda _fn, _wt, _val: _proto.encode_len_field(
-                _F_SUMMARY, new_summary_bytes
-            ),
-        )
 
     def rewrite_wrapper(wrapper: bytes) -> bytes:
         # Replace wrapper.value (field 1) = base64(rewritten CascadeTrajectorySummary).
@@ -188,19 +261,13 @@ def _rewrite_summary(envelope_b64: str, target_uid: str, new_summary: str) -> st
         if b64_inner is None:
             return wrapper
         inner = base64.b64decode(b64_inner)
-        new_inner = rewrite_inner(inner)
+        new_inner = _rewrite_inner_summary(inner, new_summary_bytes)
         new_b64 = base64.b64encode(new_inner)
         return _proto.rewrite(
             wrapper,
             when=lambda fn, wt, val: fn == 1 and wt == _proto.WIRE_LEN,
             replace=lambda _fn, _wt, _val: _proto.encode_len_field(1, new_b64),
         )
-
-    def matches_target(entry_bytes: bytes) -> bool:
-        for f2, w2, v2, *_ in _proto.iter_fields(entry_bytes):
-            if f2 == 1 and w2 == _proto.WIRE_LEN and v2 == target_uid_bytes:
-                return True
-        return False
 
     def rewrite_entry(entry_bytes: bytes) -> bytes:
         return _proto.rewrite(
@@ -212,21 +279,85 @@ def _rewrite_summary(envelope_b64: str, target_uid: str, new_summary: str) -> st
     new_envelope = _proto.rewrite(
         envelope,
         when=lambda fn, wt, val: (
-            fn == 1 and wt == _proto.WIRE_LEN and matches_target(val)
+            fn == 1 and wt == _proto.WIRE_LEN and _entry_matches(val, target_uid_bytes)
         ),
         replace=lambda _fn, _wt, val: _proto.encode_len_field(1, rewrite_entry(val)),
     )
     return base64.b64encode(new_envelope).decode("ascii")
 
 
+# --------------------------------------------------------------------------- #
+# Rewriting — Companion App (raw protobuf, no base64)
+# --------------------------------------------------------------------------- #
+def _rewrite_pb_summary(pb_bytes: bytes, target_uid: str, new_summary: str) -> bytes:
+    """Return new .pb bytes with ``target_uid``'s summary field replaced."""
+    target_uid_bytes = target_uid.encode("utf-8")
+    new_summary_bytes = new_summary.encode("utf-8")
+
+    def rewrite_entry(entry_bytes: bytes) -> bytes:
+        # TopEntry field 2 is the CascadeTrajectorySummary directly.
+        return _proto.rewrite(
+            entry_bytes,
+            when=lambda fn, wt, val: fn == 2 and wt == _proto.WIRE_LEN,
+            replace=lambda _fn, _wt, val: _proto.encode_len_field(
+                2, _rewrite_inner_summary(val, new_summary_bytes)
+            ),
+        )
+
+    return _proto.rewrite(
+        pb_bytes,
+        when=lambda fn, wt, val: (
+            fn == 1 and wt == _proto.WIRE_LEN and _entry_matches(val, target_uid_bytes)
+        ),
+        replace=lambda _fn, _wt, val: _proto.encode_len_field(1, rewrite_entry(val)),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Adapter
+# --------------------------------------------------------------------------- #
 class AntigravityAdapter(Adapter):
     name = "antigravity"
     label = "Antigravity"
 
     def available(self) -> bool:
-        return _state_vscdb() is not None
+        return _state_vscdb() is not None or _companion_pb() is not None
 
     def discover(self, since: float) -> list[Session]:
+        out: list[Session] = []
+        out.extend(self._discover_vscdb(since))
+        out.extend(self._discover_companion(since))
+        return out
+
+    def _build_session(
+        self, *, uid: str, inner: bytes, since: float, meta: dict
+    ) -> Session | None:
+        try:
+            summary_bytes = _summary_field(inner, _F_SUMMARY) or b""
+            try:
+                title = summary_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                title = ""
+            last_active = _proto.timestamp_to_epoch(
+                _summary_field(inner, _F_LAST_USER_INPUT)
+                or _summary_field(inner, _F_LAST_MODIFIED)
+                or b""
+            )
+            if last_active and last_active < since:
+                return None
+            cwd = _first_workspace_uri(_summary_field(inner, _F_WORKSPACES))
+        except (ValueError, IndexError, UnicodeDecodeError):
+            return None
+        return Session(
+            tool=self.name,
+            id=uid,
+            title=title or None,
+            last_active=last_active,
+            cwd=cwd,
+            meta=meta,
+        )
+
+    def _discover_vscdb(self, since: float) -> list[Session]:
         db = _state_vscdb()
         if not db:
             return []
@@ -241,35 +372,36 @@ class AntigravityAdapter(Adapter):
             con.close()
         if not row or not row[0]:
             return []
-
         out: list[Session] = []
-        for uid, inner in _parse_entries(row[0]):
-            try:
-                summary_bytes = _summary_field(inner, _F_SUMMARY) or b""
-                try:
-                    title = summary_bytes.decode("utf-8")
-                except UnicodeDecodeError:
-                    title = ""
-                last_active = _proto.timestamp_to_epoch(
-                    _summary_field(inner, _F_LAST_USER_INPUT)
-                    or _summary_field(inner, _F_LAST_MODIFIED)
-                    or b""
-                )
-                if last_active and last_active < since:
-                    continue
-                cwd = _first_workspace_uri(_summary_field(inner, _F_WORKSPACES))
-            except (ValueError, IndexError, UnicodeDecodeError):
-                continue  # one mangled entry shouldn't sink the whole list
-            out.append(
-                Session(
-                    tool=self.name,
-                    id=uid,
-                    title=title or None,
-                    last_active=last_active,
-                    cwd=cwd,
-                    meta={"db": str(db)},
-                )
+        for uid, inner in _parse_vscdb_entries(row[0]):
+            sess = self._build_session(
+                uid=uid,
+                inner=inner,
+                since=since,
+                meta={"store": "vscdb", "db": str(db)},
             )
+            if sess is not None:
+                out.append(sess)
+        return out
+
+    def _discover_companion(self, since: float) -> list[Session]:
+        pb = _companion_pb()
+        if not pb:
+            return []
+        try:
+            data = pb.read_bytes()
+        except OSError:
+            return []
+        out: list[Session] = []
+        for uid, inner in _parse_pb_entries(data):
+            sess = self._build_session(
+                uid=uid,
+                inner=inner,
+                since=since,
+                meta={"store": "companion", "pb": str(pb)},
+            )
+            if sess is not None:
+                out.append(sess)
         return out
 
     def read_transcript(self, session: Session) -> list[Message]:
@@ -317,6 +449,13 @@ class AntigravityAdapter(Adapter):
         return msgs[-_MAX_MSGS:]
 
     def set_title(self, session: Session, title: str) -> None:
+        store = session.meta.get("store", "vscdb")
+        if store == "companion":
+            self._set_title_companion(session, title)
+        else:
+            self._set_title_vscdb(session, title)
+
+    def _set_title_vscdb(self, session: Session, title: str) -> None:
         db = session.meta["db"]
         con = connect_write(db)
         con.isolation_level = None
@@ -327,7 +466,7 @@ class AntigravityAdapter(Adapter):
             ).fetchone()
             if not row or not row[0]:
                 raise RuntimeError("trajectorySummaries row missing")
-            new_value = _rewrite_summary(row[0], session.id, title)
+            new_value = _rewrite_vscdb_summary(row[0], session.id, title)
             r = con.execute(
                 "UPDATE ItemTable SET value = ? WHERE key = ?", (new_value, _KEY)
             )
@@ -339,3 +478,23 @@ class AntigravityAdapter(Adapter):
             raise
         finally:
             con.close()
+
+    def _set_title_companion(self, session: Session, title: str) -> None:
+        # Atomic-rename write: build new bytes, write to sibling tmp, replace.
+        # If anyone (the running Companion App, mostly) holds an exclusive
+        # handle on the file on Windows, the replace can fail — see module
+        # caveat. We don't try to open the original for writing, only read it.
+        pb_path = Path(session.meta["pb"])
+        data = pb_path.read_bytes()
+        new_data = _rewrite_pb_summary(data, session.id, title)
+        tmp = pb_path.with_suffix(pb_path.suffix + ".retitle.tmp")
+        tmp.write_bytes(new_data)
+        try:
+            os.replace(tmp, pb_path)
+        except OSError:
+            # Best-effort cleanup of the tmp file before propagating.
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+            raise

@@ -19,9 +19,17 @@ All notable changes to this project are documented here. Format loosely follows
   summaries). `read_transcript` feeds those to the namer, so any conversation
   with brain artifacts gets a fresh title in the daemon loop just like the
   other three tools. On a sample install ≈35% of conversations had artifacts.
+- **Antigravity Companion App** support (Windows). The standalone Companion
+  stores titles in a raw protobuf at `~/.gemini/antigravity/agyhub_summaries_proto.pb`
+  (no SQLite, no base64 — just `repeated TopEntry { uuid; CascadeTrajectorySummary }`).
+  `discover` and `set_title` now handle both stores; `read_transcript` reads
+  the same `brain/` artifacts regardless of store. Writes go through a
+  write-tmp + `os.replace` atomic rename. Verified against a `.pb` file shared
+  by [@xiongaox](https://github.com/xiongaox) on the issue.
 - Closes [#1](https://github.com/study8677/retitle/issues/1). Thanks to
-  [@xiongaox](https://github.com/xiongaox) for filing it — the issue is what
-  unlocked the whole Antigravity adapter.
+  [@xiongaox](https://github.com/xiongaox) for filing it AND for sharing the
+  Companion App `.pb` that unlocked the second store format — the issue is
+  what made the whole Antigravity adapter possible.
 
 ## [0.4.1] - 2026-05-30
 

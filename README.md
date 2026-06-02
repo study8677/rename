@@ -173,7 +173,7 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 | **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | appends an `ai-title` line (append-only — the safest write) | ✅ stable |
 | **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
 | **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
-| **Antigravity** *(Google)* | `state.vscdb` (`antigravityUnifiedStateSync.trajectorySummaries`) | rewrites the `summary` field of one `CascadeTrajectorySummary` | ⚠️ experimental — [read-only naming](#antigravity-notes) |
+| **Antigravity** *(Google)* | IDE: `state.vscdb` (`antigravityUnifiedStateSync.trajectorySummaries`) — Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | rewrites the `summary` field of one `CascadeTrajectorySummary` (atomic-rename for the Companion file) | ⚠️ experimental — [see notes](#antigravity-notes) |
 
 > **A note on writing while the app is open.** Codex, Cursor and Antigravity keep their data
 > in live SQLite databases. `retitle` writes carefully (read-only reads, `busy_timeout` on
@@ -184,18 +184,22 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 
 ### Antigravity notes
 
-Antigravity is a VS Code fork. Its conversation transcripts live at
-`~/.gemini/antigravity/conversations/<uuid>.pb` and are **encrypted at rest** (uniform-byte
-ciphertext, key held by the OS keychain). But its sidebar reads titles from a separate,
-**plaintext** store: a base64-encoded protobuf at
-`ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` inside
-`state.vscdb` — same pattern as Cursor.
+Antigravity ships in two forms — the **IDE** (a VS Code fork with a Gemini sidebar)
+and a standalone **Companion App** (Windows-only). `retitle` supports both:
 
-`retitle` reads and rewrites that store directly (SQL `UPDATE`, no extension, no key
-extraction). And while the raw chat is encrypted, Antigravity's agent itself writes
-plain-text working artifacts to `~/.gemini/antigravity/brain/<uuid>/` while it works
-(`task.md`, `implementation_plan.md`, `walkthrough.md` and matching `*.metadata.json`
-summaries) — those are the material `retitle` feeds to the namer.
+| Flavor | Title store | Format |
+|---|---|---|
+| IDE | `state.vscdb` → `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` | base64(envelope(base64(`CascadeTrajectorySummary`))) — same pattern as Cursor |
+| Companion App | `~/.gemini/antigravity/agyhub_summaries_proto.pb` | raw protobuf, `repeated TopEntry { uuid; CascadeTrajectorySummary }` |
+
+Both flavors share the same `CascadeTrajectorySummary` schema (reverse-engineered
+from Antigravity 2.0's bundled `FileDescriptorProto`); only the outer wrapping
+differs. The IDE store is rewritten via `UPDATE`; the Companion file is rewritten
+by atomic rename. Conversation transcripts (`~/.gemini/antigravity/conversations/<uuid>.pb`)
+are **encrypted at rest** in either flavor, but Antigravity's agent writes plaintext
+working artifacts to `~/.gemini/antigravity/brain/<uuid>/` (`task.md`,
+`implementation_plan.md`, `walkthrough.md`, plus `*.metadata.json` summaries) — those
+are the material `retitle` feeds to the namer.
 
 - ✅ Antigravity sessions show up in `retitle list`, `retitle search`, `retitle stats`
 - ✅ Automatic rename works for any conversation that has produced brain artifacts
@@ -327,8 +331,9 @@ other people find it — and motivates more adapters (Aider, Continue, Zed, …)
 
 - **[@xiongaox](https://github.com/xiongaox)** filed [#1](https://github.com/study8677/retitle/issues/1)
   asking for Antigravity support. That issue is what unlocked the whole Antigravity adapter —
-  the protobuf schema reverse-engineering, the `brain/` artifacts discovery, all of it.
-  Thank you 🙏.
+  the protobuf schema reverse-engineering, the `brain/` artifacts discovery, and (after he
+  shared the Companion App's `.pb` file header in the same issue) the Companion App store
+  format. Thank you 🙏.
 
 ## License
 
