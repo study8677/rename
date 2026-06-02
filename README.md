@@ -17,9 +17,12 @@ match what the work actually became — across all three tools.** Then `retitle 
 mine that history: find any past session across Claude Code, Codex and Cursor at once.
 
 [![CI](https://github.com/study8677/retitle/actions/workflows/ci.yml/badge.svg)](https://github.com/study8677/retitle/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/study8677/retitle?label=release&color=blue)](https://github.com/study8677/retitle/releases)
+[![GitHub stars](https://img.shields.io/github/stars/study8677/retitle?style=flat&color=yellow)](https://github.com/study8677/retitle/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](pyproject.toml)
+[![Supported tools](https://img.shields.io/badge/tools-8-9c27b0.svg)](#supported-tools)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-orange.svg)](CONTRIBUTING.md)
 
 **English** · [简体中文](README.zh-CN.md)
