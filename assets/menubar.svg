@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+  <!-- Menu bar background -->
+  <rect x="0" y="0" width="380" height="20" fill="#f0f0f0" />
+  <!-- Tag icon + Retitle label in menu bar -->
+  <g transform="translate(290, 10)">
+    <polygon points="0,-5 16,-5 22,0 16,5 0,5" fill="#2563eb"/>
+    <circle cx="5" cy="0" r="2" fill="#fff"/>
+    <text x="28" y="4" font-size="11" font-weight="500" fill="#222">Retitle</text>
+  </g>
+  <text x="340" y="14" font-size="11" fill="#222">12:34</text>
+
+  <!-- Dropdown popover (with shadow + rounded corners) -->
+  <rect x="20" y="32" width="340" height="290" fill="#222" rx="10" opacity="0.06" filter="url(#shadow)"/>
+  <rect x="20" y="32" width="340" height="290" fill="#fff" rx="10" stroke="#e1e4e8"/>
+
+  <!-- Header -->
+  <g transform="translate(36, 50)">
+    <circle cx="14" cy="14" r="12" fill="#d1fae5"/>
+    <text x="14" y="19" text-anchor="middle" font-size="16" fill="#10b981">✓</text>
+    <text x="34" y="14" font-size="14" font-weight="600" fill="#111">retitle is running</text>
+    <text x="34" y="29" font-size="11" fill="#6c7a89">Scanning idle sessions and renaming.</text>
+    <text x="296" y="14" text-anchor="end" font-size="11" fill="#9ca3af">v0.5.0</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="36" y1="92" x2="344" y2="92" stroke="#e5e7eb"/>
+
+  <!-- Recent renames -->
+  <g transform="translate(36, 102)">
+    <text x="0" y="0" font-size="10" font-weight="500" fill="#6c7a89">RECENT RENAMES</text>
+
+    <!-- Rename 1 -->
+    <text x="0" y="20" font-size="12" font-weight="500" fill="#111">Fix the OAuth refresh-token race condition</text>
+    <text x="0" y="33" font-size="10" fill="#9ca3af" text-decoration="line-through">Check if branches are synced</text>
+
+    <!-- Rename 2 -->
+    <text x="0" y="56" font-size="12" font-weight="500" fill="#111">Migrate auth middleware to the new JWT signer</text>
+    <text x="0" y="69" font-size="10" fill="#9ca3af" text-decoration="line-through">Untitled</text>
+
+    <!-- Rename 3 -->
+    <text x="0" y="92" font-size="12" font-weight="500" fill="#111">Refactor ETL retry logic to use exponential backoff</text>
+    <text x="0" y="105" font-size="10" fill="#9ca3af" text-decoration="line-through">help with python script</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="36" y1="222" x2="344" y2="222" stroke="#e5e7eb"/>
+
+  <!-- Actions -->
+  <g transform="translate(36, 232)" font-size="12" fill="#111">
+    <text x="0" y="14">⊞ Open Dashboard…</text>
+    <text x="270" y="14" text-anchor="end" font-size="10" fill="#9ca3af">⌘D</text>
+
+    <text x="0" y="36">⚙ Settings…</text>
+    <text x="270" y="36" text-anchor="end" font-size="10" fill="#9ca3af">⌘,</text>
+
+    <text x="0" y="58">⏸ Pause daemon</text>
+
+    <text x="0" y="80">⏻ Quit Retitle</text>
+    <text x="270" y="80" text-anchor="end" font-size="10" fill="#9ca3af">⌘Q</text>
+  </g>
+</svg>

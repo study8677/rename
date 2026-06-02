@@ -9,7 +9,16 @@ from typing import Any
 
 from . import util
 
-ALL_TOOLS = ("claude-code", "codex", "cursor", "antigravity")
+ALL_TOOLS = (
+    "claude-code",
+    "codex",
+    "cursor",
+    "antigravity",
+    "continue",
+    "zed",
+    "windsurf",
+    "aider",
+)
 
 DEFAULT_TOML = """\
 # retitle configuration — https://github.com/study8677/retitle
@@ -27,9 +36,13 @@ poll_seconds = 60
 batch_size = 25
 
 # Which tools to manage. Remove any you don't use.
-# "antigravity" is read-only for naming (its transcripts are encrypted at rest)
-# but is listed/searched alongside the others — drop it if you don't want it in
-# `retitle list` / `retitle search` / `retitle stats`.
+#
+# Stable: "claude-code", "codex"
+# Experimental: "cursor", "antigravity", "continue", "zed", "windsurf", "aider"
+#   * "antigravity" is read-only for naming when transcripts are encrypted, but
+#     is still listed/searched alongside the others (drop it to hide it)
+#   * "aider" is read-only — Aider has no native title slot, so renames go to
+#     a sidecar file that only retitle reads
 tools = ["claude-code", "codex", "cursor", "antigravity"]
 
 # How titles are generated. The default needs NO API key.

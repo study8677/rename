@@ -4,6 +4,13 @@ import SwiftUI
 struct RetitleApp: App {
     @StateObject private var state = AppState()
     @StateObject private var toasts = ToastCenter()
+    @Environment(\.openWindow) private var openWindow
+
+    /// Set ``RETITLE_AUTO_OPEN_DASHBOARD=1`` to open the Dashboard at launch.
+    /// Used by the README-screenshot job; harmless if unset.
+    private var autoOpenDashboard: Bool {
+        ProcessInfo.processInfo.environment["RETITLE_AUTO_OPEN_DASHBOARD"] == "1"
+    }
 
     var body: some Scene {
         // Menu bar entry — visible icon + label for discoverability.
@@ -14,7 +21,17 @@ struct RetitleApp: App {
                 .sheet(isPresented: $state.showFDAOnboarding) {
                     OnboardingView().environmentObject(state)
                 }
-                .onAppear { state.startBackgroundStatusPolling() }
+                .onAppear {
+                    state.startBackgroundStatusPolling()
+                    if autoOpenDashboard {
+                        // Slight delay so SwiftUI finishes wiring the
+                        // window group before we ask it to open.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            openWindow(id: "dashboard")
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                    }
+                }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "tag.fill")

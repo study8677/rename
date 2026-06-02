@@ -619,6 +619,105 @@ def test_antigravity_both_stores_listed_together(tmp_path, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+# Experimental adapters — Continue / Zed / Windsurf / Aider
+# Smoke tests verifying they import, default to unavailable when no data is
+# present, and round-trip a minimal fixture.
+# --------------------------------------------------------------------------- #
+def test_continue_unavailable_when_dir_missing(tmp_path, monkeypatch):
+    from retitle.adapters import continue_dev
+    monkeypatch.setattr(continue_dev, "_SESSIONS_DIR", tmp_path / "does_not_exist")
+    a = continue_dev.ContinueAdapter()
+    assert a.available() is False
+    assert a.discover(0) == []
+
+
+def test_continue_roundtrip(tmp_path, monkeypatch):
+    from retitle.adapters import continue_dev
+    sessions_dir = tmp_path / "sessions"
+    sessions_dir.mkdir()
+    sid = "session-abc-123"
+    payload = {
+        "sessionId": sid,
+        "title": "Old title",
+        "workspaceDirectory": "/Users/me/proj",
+        "history": [
+            {"message": {"role": "user", "content": "Add a dark-mode toggle"}},
+            {"message": {"role": "assistant", "content": "Sure."}},
+        ],
+    }
+    (sessions_dir / f"{sid}.json").write_text(json.dumps(payload), "utf-8")
+    monkeypatch.setattr(continue_dev, "_SESSIONS_DIR", sessions_dir)
+    a = continue_dev.ContinueAdapter()
+    sessions = a.discover(0)
+    assert len(sessions) == 1
+    assert sessions[0].title == "Old title"
+    msgs = a.read_transcript(sessions[0])
+    assert any("dark-mode" in m.text for m in msgs)
+    a.set_title(sessions[0], "New title for the toggle session")
+    assert a.discover(0)[0].title == "New title for the toggle session"
+
+
+def test_zed_unavailable_when_dir_missing(monkeypatch, tmp_path):
+    from retitle.adapters import zed
+    monkeypatch.setattr(zed, "_store_dir", lambda: None)
+    assert zed.ZedAdapter().available() is False
+    assert zed.ZedAdapter().discover(0) == []
+
+
+def test_zed_roundtrip(monkeypatch, tmp_path):
+    from retitle.adapters import zed
+    store = tmp_path / "conversations"
+    store.mkdir()
+    payload = {
+        "summary": "Old Zed title",
+        "messages": [
+            {"role": "user", "text": "Help me write a CSV importer"},
+            {"role": "assistant", "text": "Sure."},
+        ],
+    }
+    (store / "z-1.json").write_text(json.dumps(payload), "utf-8")
+    monkeypatch.setattr(zed, "_store_dir", lambda: store)
+    a = zed.ZedAdapter()
+    sessions = a.discover(0)
+    assert len(sessions) == 1
+    assert sessions[0].title == "Old Zed title"
+    a.set_title(sessions[0], "Renamed Zed session")
+    assert a.discover(0)[0].title == "Renamed Zed session"
+
+
+def test_windsurf_unavailable_when_db_missing(monkeypatch):
+    from retitle.adapters import windsurf
+    monkeypatch.setattr(windsurf, "_vscdb", lambda: None)
+    assert windsurf.WindsurfAdapter().available() is False
+    assert windsurf.WindsurfAdapter().discover(0) == []
+
+
+def test_aider_unavailable_when_no_chats(monkeypatch, tmp_path):
+    from retitle.adapters import aider
+    monkeypatch.setattr(aider, "_discover_chats", lambda: [])
+    assert aider.AiderAdapter().available() is False
+    assert aider.AiderAdapter().discover(0) == []
+
+
+def test_aider_sidecar_roundtrip(monkeypatch, tmp_path):
+    from retitle.adapters import aider
+    proj = tmp_path / "myproj"
+    proj.mkdir()
+    chat = proj / ".aider.chat.history.md"
+    chat.write_text("#### user\nplease add a CSV importer\n\nassistant: sure\n", "utf-8")
+    monkeypatch.setattr(aider, "_discover_chats", lambda: [chat])
+    a = aider.AiderAdapter()
+    sessions = a.discover(0)
+    assert len(sessions) == 1
+    assert sessions[0].title is None  # no sidecar yet
+    a.set_title(sessions[0], "Add a CSV importer")
+    sessions = a.discover(0)
+    assert sessions[0].title == "Add a CSV importer"
+    msgs = a.read_transcript(sessions[0])
+    assert msgs and "CSV importer" in msgs[0].text
+
+
+# --------------------------------------------------------------------------- #
 # Robustness: malformed / missing data must degrade gracefully, not crash
 # --------------------------------------------------------------------------- #
 def test_claude_skips_corrupt_lines(tmp_path, monkeypatch):

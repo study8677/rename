@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 580" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fafafa"/>
+      <stop offset="100%" stop-color="#f1f3f5"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- Window backdrop (rounded title bar style) -->
+  <rect x="0" y="0" width="920" height="580" fill="url(#bg)" rx="12"/>
+  <rect x="0" y="0" width="920" height="34" fill="#ececec" rx="12"/>
+  <rect x="0" y="22" width="920" height="12" fill="#ececec"/>
+  <!-- Traffic lights -->
+  <circle cx="20" cy="17" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="17" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="17" r="6" fill="#27c93f"/>
+  <text x="460" y="22" text-anchor="middle" font-size="13" font-weight="500" fill="#555">Retitle</text>
+
+  <!-- Stat cards row -->
+  <g transform="translate(20, 50)">
+    <!-- Tracked -->
+    <rect x="0" y="0" width="170" height="64" fill="#fff" rx="10" stroke="#e1e4e8"/>
+    <rect x="10" y="14" width="36" height="36" rx="8" fill="#dbeafe"/>
+    <text x="28" y="36" text-anchor="middle" font-size="18" fill="#3b82f6">⟐</text>
+    <text x="56" y="30" font-size="20" font-weight="600" fill="#111">109</text>
+    <text x="56" y="50" font-size="11" fill="#6c7a89">Tracked</text>
+    <!-- Sessions -->
+    <rect x="180" y="0" width="170" height="64" fill="#fff" rx="10" stroke="#e1e4e8"/>
+    <rect x="190" y="14" width="36" height="36" rx="8" fill="#f3e8ff"/>
+    <text x="208" y="36" text-anchor="middle" font-size="18" fill="#a855f7">⟁</text>
+    <text x="236" y="30" font-size="20" font-weight="600" fill="#111">847</text>
+    <text x="236" y="50" font-size="11" fill="#6c7a89">Sessions</text>
+    <!-- Stale -->
+    <rect x="360" y="0" width="170" height="64" fill="#fff" rx="10" stroke="#e1e4e8"/>
+    <rect x="370" y="14" width="36" height="36" rx="8" fill="#fef3c7"/>
+    <text x="388" y="36" text-anchor="middle" font-size="18" fill="#f59e0b">⏱</text>
+    <text x="416" y="30" font-size="20" font-weight="600" fill="#111">42</text>
+    <text x="416" y="50" font-size="11" fill="#6c7a89">Stale</text>
+    <!-- Renamed -->
+    <rect x="540" y="0" width="170" height="64" fill="#fff" rx="10" stroke="#e1e4e8"/>
+    <rect x="550" y="14" width="36" height="36" rx="8" fill="#d1fae5"/>
+    <text x="568" y="36" text-anchor="middle" font-size="18" fill="#10b981">✦</text>
+    <text x="596" y="30" font-size="20" font-weight="600" fill="#111">1,284</text>
+    <text x="596" y="50" font-size="11" fill="#6c7a89">Renamed</text>
+    <!-- Status pill -->
+    <rect x="730" y="14" width="170" height="36" fill="#d1fae5" rx="18"/>
+    <circle cx="746" cy="32" r="4" fill="#10b981"/>
+    <text x="758" y="29" font-size="12" font-weight="500" fill="#047857">Daemon running</text>
+    <text x="758" y="44" font-size="10" fill="#047857" opacity="0.7">namer: claude</text>
+  </g>
+
+  <!-- Filter chips row -->
+  <g transform="translate(20, 130)">
+    <rect x="0" y="0" width="60" height="28" fill="#3b82f615" stroke="#3b82f6" rx="14"/>
+    <text x="30" y="18" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="500">All</text>
+
+    <rect x="70" y="0" width="105" height="28" fill="none" stroke="#e1e4e8" rx="14"/>
+    <text x="123" y="18" text-anchor="middle" font-size="12" fill="#374151">Claude Code</text>
+
+    <rect x="185" y="0" width="76" height="28" fill="#10b98125" stroke="#10b981" rx="14"/>
+    <text x="223" y="18" text-anchor="middle" font-size="12" fill="#10b981" font-weight="500">Codex</text>
+
+    <rect x="271" y="0" width="76" height="28" fill="none" stroke="#e1e4e8" rx="14"/>
+    <text x="309" y="18" text-anchor="middle" font-size="12" fill="#374151">Cursor</text>
+
+    <rect x="357" y="0" width="105" height="28" fill="none" stroke="#e1e4e8" rx="14"/>
+    <text x="409" y="18" text-anchor="middle" font-size="12" fill="#374151">Antigravity</text>
+
+    <!-- Search -->
+    <rect x="660" y="0" width="240" height="28" fill="#fff" rx="14" stroke="#e1e4e8"/>
+    <text x="680" y="18" font-size="13" fill="#9ca3af">🔍  Search titles, paths…</text>
+  </g>
+
+  <!-- Session rows -->
+  <g transform="translate(20, 178)" font-size="13" fill="#111">
+
+    <!-- Row 1 — rename diff -->
+    <rect x="0" y="0" width="880" height="56" fill="#f8fafc" rx="6"/>
+    <rect x="12" y="14" width="60" height="20" fill="none" stroke="#e07d33" rx="10"/>
+    <text x="42" y="28" text-anchor="middle" font-size="11" fill="#e07d33" font-weight="500">Claude</text>
+    <text x="86" y="22" font-size="13" fill="#9ca3af" text-decoration="line-through">Check if branches are synced</text>
+    <text x="270" y="22" font-size="13" fill="#9ca3af">→</text>
+    <text x="286" y="22" font-size="13" fill="#16a34a" font-weight="600">Fix the OAuth refresh-token race condition</text>
+    <text x="12" y="44" font-size="11" fill="#6c7a89">⏱ 2h  ·  📁 …/api/auth  ·  idle 2h</text>
+    <circle cx="858" cy="28" r="11" fill="#fff" stroke="#e1e4e8"/>
+    <text x="858" y="32" text-anchor="middle" font-size="13" fill="#374151">↻</text>
+
+    <!-- Row 2 — active -->
+    <rect x="0" y="60" width="880" height="56" fill="transparent" rx="6"/>
+    <rect x="12" y="74" width="60" height="20" fill="none" stroke="#1a9d72" rx="10"/>
+    <text x="42" y="88" text-anchor="middle" font-size="11" fill="#1a9d72" font-weight="500">Codex</text>
+    <text x="86" y="82" font-size="13">Add CSV export to the invoice dashboard</text>
+    <text x="12" y="104" font-size="11" fill="#6c7a89">⏱ 14m  ·  📁 …/billing/web  ·  still active</text>
+    <circle cx="858" cy="88" r="11" fill="#fff" stroke="#e1e4e8" opacity="0.4"/>
+    <text x="858" y="92" text-anchor="middle" font-size="13" fill="#374151" opacity="0.4">↻</text>
+
+    <!-- Row 3 — rename diff -->
+    <rect x="0" y="120" width="880" height="56" fill="#f8fafc" rx="6"/>
+    <rect x="12" y="134" width="60" height="20" fill="none" stroke="#6b67eb" rx="10"/>
+    <text x="42" y="148" text-anchor="middle" font-size="11" fill="#6b67eb" font-weight="500">Cursor</text>
+    <text x="86" y="142" font-size="13" fill="#9ca3af" text-decoration="line-through">Untitled</text>
+    <text x="166" y="142" font-size="13" fill="#9ca3af">→</text>
+    <text x="182" y="142" font-size="13" fill="#16a34a" font-weight="600">Migrate auth middleware to the new JWT signer</text>
+    <text x="12" y="164" font-size="11" fill="#6c7a89">⏱ 1d  ·  📁 …/services/auth  ·  idle 1d</text>
+    <circle cx="858" cy="148" r="11" fill="#fff" stroke="#e1e4e8"/>
+    <text x="858" y="152" text-anchor="middle" font-size="13" fill="#374151">↻</text>
+
+    <!-- Row 4 — already current -->
+    <rect x="0" y="180" width="880" height="56" fill="transparent" rx="6"/>
+    <rect x="12" y="194" width="60" height="20" fill="none" stroke="#3380eb" rx="10"/>
+    <text x="42" y="208" text-anchor="middle" font-size="11" fill="#3380eb" font-weight="500">Antigr.</text>
+    <text x="86" y="202" font-size="13">Investigate flaky integration test on CI</text>
+    <text x="12" y="224" font-size="11" fill="#6c7a89">⏱ 3h  ·  📁 …/ci  ·  title already accurate</text>
+    <circle cx="858" cy="208" r="11" fill="#fff" stroke="#e1e4e8" opacity="0.4"/>
+    <text x="858" y="212" text-anchor="middle" font-size="13" fill="#374151" opacity="0.4">↻</text>
+
+    <!-- Row 5 — rename diff -->
+    <rect x="0" y="240" width="880" height="56" fill="#f8fafc" rx="6"/>
+    <rect x="12" y="254" width="60" height="20" fill="none" stroke="#e07d33" rx="10"/>
+    <text x="42" y="268" text-anchor="middle" font-size="11" fill="#e07d33" font-weight="500">Claude</text>
+    <text x="86" y="262" font-size="13" fill="#9ca3af" text-decoration="line-through">help with python script</text>
+    <text x="244" y="262" font-size="13" fill="#9ca3af">→</text>
+    <text x="260" y="262" font-size="13" fill="#16a34a" font-weight="600">Refactor ETL retry logic to use exponential backoff</text>
+    <text x="12" y="284" font-size="11" fill="#6c7a89">⏱ 5h  ·  📁 …/etl/pipeline  ·  idle 5h</text>
+    <circle cx="858" cy="268" r="11" fill="#fff" stroke="#e1e4e8"/>
+    <text x="858" y="272" text-anchor="middle" font-size="13" fill="#374151">↻</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(20, 530)">
+    <rect x="0" y="0" width="72" height="28" fill="#fff" rx="6" stroke="#e1e4e8"/>
+    <text x="36" y="18" text-anchor="middle" font-size="12" fill="#374151">↻ Refresh</text>
+    <rect x="80" y="0" width="76" height="28" fill="#fff" rx="6" stroke="#e1e4e8"/>
+    <text x="118" y="18" text-anchor="middle" font-size="12" fill="#374151">⏸ Pause</text>
+    <rect x="164" y="0" width="78" height="28" fill="#fff" rx="6" stroke="#e1e4e8"/>
+    <text x="203" y="18" text-anchor="middle" font-size="12" fill="#374151">⚙ Settings</text>
+    <text x="880" y="18" text-anchor="end" font-size="11" fill="#6c7a89">5 / 109</text>
+  </g>
+</svg>

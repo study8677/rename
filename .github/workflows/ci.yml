@@ -28,6 +28,8 @@ jobs:
         include:
           - os: macos-latest
             python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,3 +39,50 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Run tests
         run: pytest -q
+
+  macos-app:
+    name: Build Retitle.app (Swift)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Swift version
+        run: swift --version
+      - name: swift build (debug)
+        working-directory: macos-app
+        run: swift build
+      - name: Assemble Retitle.app
+        working-directory: macos-app
+        run: ./build-app.sh
+      - name: Archive Retitle.app
+        working-directory: macos-app
+        run: |
+          ditto -c -k --keepParent Retitle.app Retitle-app.zip
+      - name: Upload Retitle.app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Retitle-app-macos
+          path: macos-app/Retitle-app.zip
+          if-no-files-found: error
+
+  windows-gui:
+    name: Smoke-test Windows GUI (PySide6)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install retitle (root package)
+        run: pip install -e .
+      - name: Install retitle-gui
+        working-directory: windows-app
+        run: pip install -e .
+      - name: Import smoke
+        run: |
+          python -c "import retitle_gui; import retitle_gui.bridge; import retitle_gui.config_store; import retitle_gui.i18n; print('imports OK')"
+      - name: Bridge offline check
+        # Bridge should not crash when retitle binary is absent — it just returns None.
+        env:
+          RETITLE_BIN: ""
+        run: |
+          python -c "from retitle_gui.bridge import find_retitle; print('find_retitle:', find_retitle())"

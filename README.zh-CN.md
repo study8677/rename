@@ -168,6 +168,10 @@ retitle once --all --dry-run   # 预览整个积压，不写入
 | **Codex** | `~/.codex/state_*.sqlite` + rollout 文件 | `UPDATE threads SET title` | ✅ 稳定 |
 | **Cursor** | `state.vscdb`（`composerHeaders` + `composerData`） | 同时更新两处标题字段 | ⚠️ 实验性 |
 | **Antigravity** *(Google)* | IDE: `state.vscdb`（`antigravityUnifiedStateSync.trajectorySummaries`）— Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | 重写对应 `CascadeTrajectorySummary` 的 `summary` 字段（Companion 走原子 rename 重写文件） | ⚠️ 实验性 — [看说明](#antigravity-说明) |
+| **Continue** *(continue.dev)* | `~/.continue/sessions/<id>.json` | 改写 `title` + 原子 rename | ⚠️ 实验性 |
+| **Zed** *(zed.dev Assistant)* | `~/Library/Application Support/Zed/conversations/<uuid>.json` 等 | 改写 `summary` / `title` + 原子 rename | ⚠️ 实验性 — schema 随 Zed 版本变 |
+| **Windsurf** *(Codeium)* | `state.vscdb`(Cursor 分支布局) | 复用 Cursor 的写入路径,只换路径 | ⚠️ 实验性 |
+| **Aider** | `.aider.chat.history.md`(每个项目一份) | 写到 `.aider.chat.history.md.title` 旁路文件(Aider 本身只读) | ⚠️ 实验性 — 只读 |
 
 > **关于「应用开着时写入」。** Codex、Cursor 和 Antigravity 都把数据存在正在使用的 SQLite
 > 数据库里。`retitle` 写入很谨慎（读取走只读连接、写入设了 `busy_timeout`），而且只碰

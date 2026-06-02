@@ -5,7 +5,29 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-02
+
 ### Added
+- **Four new experimental adapters** — `continue`, `zed`, `windsurf`, and
+  `aider`. Each is a thin best-effort implementation:
+  - `continue` reads `~/.continue/sessions/<id>.json`, rewrites the `title`
+    field via atomic rename
+  - `zed` reads `~/Library/Application Support/Zed/conversations/<uuid>.json`
+    (etc. on other OSes), rewrites `summary` / `title`
+  - `windsurf` is a Cursor-fork; the adapter reuses the Cursor write path
+    with the Windsurf data dir
+  - `aider` is read-only — Aider has no native title slot, so renames go
+    to a `.aider.chat.history.md.title` sidecar that only retitle reads
+- **macOS Homebrew tap** — `brew install study8677/retitle/retitle` (after
+  running `brew tap study8677/retitle https://github.com/study8677/retitle.git`).
+  Includes a `brew services start retitle` integration that mirrors
+  `retitle install` on launchd.
+- **GitHub Actions matrix expansion** — `windows-latest` job for the Python
+  test suite, a new `macos-app` job that builds `Retitle.app` and uploads it
+  as an artifact on every push, and a `windows-gui` job that smoke-imports
+  the PySide6 GUI.
+- **Hand-crafted Dashboard + menu-bar SVGs** in `assets/` — embedded at the
+  top of the READMEs so visitors see the GUI before they read anything.
 - **Antigravity (Google) adapter** ⚠️ experimental. Lists, searches and renames
   Antigravity conversations by rewriting `CascadeTrajectorySummary.summary`
   inside `state.vscdb`'s `antigravityUnifiedStateSync.trajectorySummaries`

@@ -30,10 +30,25 @@ mine that history: find any past session across Claude Code, Codex and Cursor at
   <img src="https://raw.githubusercontent.com/study8677/retitle/main/assets/demo.svg" alt="retitle rewrites stale Claude Code, Codex and Cursor session titles to match the latest work" width="820">
 </p>
 
+<p align="center">
+  <a href="macos-app/">
+    <img src="https://raw.githubusercontent.com/study8677/retitle/main/assets/dashboard.svg" alt="The optional native menu-bar app shows every session across Claude Code, Codex, Cursor and Antigravity, with the old → new title diff in one place" width="820">
+  </a>
+</p>
+
+<p align="center"><sub>The optional <a href="macos-app/">native macOS app</a> and <a href="windows-app/">Windows GUI</a> give you the same picture without opening a terminal.</sub></p>
+
 <p align="center"><b>30-second try</b> — no install, writes nothing:</p>
 
 ```bash
 uvx --from git+https://github.com/study8677/retitle.git retitle list
+```
+
+Or install for real:
+
+```bash
+brew install study8677/retitle/retitle   # macOS (Homebrew tap)
+pipx install retitle                      # everywhere else (Python 3.11+)
 ```
 
 ---
@@ -174,6 +189,10 @@ retitle once --all --dry-run   # preview the whole backlog without writing
 | **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
 | **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
 | **Antigravity** *(Google)* | IDE: `state.vscdb` (`antigravityUnifiedStateSync.trajectorySummaries`) — Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | rewrites the `summary` field of one `CascadeTrajectorySummary` (atomic-rename for the Companion file) | ⚠️ experimental — [see notes](#antigravity-notes) |
+| **Continue** *(continue.dev)* | `~/.continue/sessions/<id>.json` | rewrites `title` and atomic-renames the file | ⚠️ experimental |
+| **Zed** *(zed.dev Assistant)* | `~/Library/Application Support/Zed/conversations/<uuid>.json` (etc.) | rewrites `summary` / `title` and atomic-renames | ⚠️ experimental — schema varies by Zed version |
+| **Windsurf** *(Codeium)* | `state.vscdb` (Cursor-fork layout) | reuses the Cursor write path with the Windsurf store path | ⚠️ experimental |
+| **Aider** | `.aider.chat.history.md` (per project) | sidecar `.aider.chat.history.md.title` file (read-only as far as Aider itself is concerned) | ⚠️ experimental — read-only |
 
 > **A note on writing while the app is open.** Codex, Cursor and Antigravity keep their data
 > in live SQLite databases. `retitle` writes carefully (read-only reads, `busy_timeout` on
