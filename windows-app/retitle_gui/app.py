@@ -301,6 +301,10 @@ class DashboardWindow(QMainWindow):
         self.settings_btn.clicked.connect(self.state.open_settings)
         h.addWidget(self.settings_btn)
 
+        self.historical_btn = QPushButton(t("rename_historical"))
+        self.historical_btn.clicked.connect(self._confirm_historical)
+        h.addWidget(self.historical_btn)
+
         h.addStretch(1)
         self.footer_status = QLabel("")
         self.footer_status.setStyleSheet("color:palette(mid); font-size:11px;")
@@ -490,6 +494,22 @@ class DashboardWindow(QMainWindow):
             "no namer": t("reason_no_namer"),
             "no content": t("reason_no_content"),
         }.get(raw, raw)
+
+    def _confirm_historical(self) -> None:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle(t("historical_confirm_title"))
+        box.setText(t("historical_confirm_title"))
+        box.setInformativeText(t("historical_confirm_body"))
+        run_btn = box.addButton(t("historical_run"), QMessageBox.AcceptRole)
+        dry_btn = box.addButton(t("historical_dry"), QMessageBox.ActionRole)
+        box.addButton(t("historical_cancel"), QMessageBox.RejectRole)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is run_btn:
+            self.state.rename_historical(dry_run=False)
+        elif clicked is dry_btn:
+            self.state.rename_historical(dry_run=True)
 
     # ----- toast ----------------------------------------------------------
 
@@ -716,6 +736,30 @@ class AppState(QObject):
             self.refresh_sessions()
 
         self._spawn(do_rename, done)
+
+    def rename_historical(self, dry_run: bool = False) -> None:
+        """User-initiated full historical pass — sends every backlog session
+        through the namer. Runs on a worker thread; surface progress via
+        toasts."""
+        if not self.cli:
+            self.toast("error", t("cli_not_found"))
+            return
+
+        self.toast("info", t("toast_historical_started"))
+
+        def do_run() -> str:
+            return self.cli.rename_historical(dry_run=dry_run)
+
+        def done(result: object) -> None:
+            # Last non-empty line of stderr is the CLI summary
+            # ("done — renamed N of M candidate(s)").
+            text = result if isinstance(result, str) else ""
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+            summary = lines[-1] if lines else t("toast_historical_done")
+            self.toast("success", summary)
+            self.refresh_sessions()
+
+        self._spawn(do_run, done)
 
     def open_dashboard(self) -> None:
         if not self._dashboard:

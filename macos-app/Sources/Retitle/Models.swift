@@ -27,6 +27,7 @@ struct RetitleStatus: Codable, Hashable {
     let configExists: Bool
     let statePath: String
     let tracked: Int
+    let baselineTs: Double?
     let logPath: String
     let namer: String
     let namerResolved: String
@@ -45,6 +46,7 @@ struct RetitleStatus: Codable, Hashable {
         case configExists = "config_exists"
         case statePath = "state_path"
         case tracked
+        case baselineTs = "baseline_ts"
         case logPath = "log_path"
         case namer
         case namerResolved = "namer_resolved"

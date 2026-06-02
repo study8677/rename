@@ -17,7 +17,12 @@ from retitle.adapters import _proto, antigravity, claude_code, codex, cursor
 # Claude Code
 # --------------------------------------------------------------------------- #
 def _write_jsonl(path, rows):
-    path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
+    # Force UTF-8 — on Windows the default encoding is cp1252 which can't
+    # represent Unicode (e.g. CJK) characters in our fixtures.
+    path.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n",
+        encoding="utf-8",
+    )
 
 
 def test_claude_adapter_roundtrip(tmp_path, monkeypatch):
@@ -360,10 +365,12 @@ def test_antigravity_read_transcript_from_brain(tmp_path, monkeypatch):
                 "summary": "Migrate auth middleware to use the new JWT signer.",
                 "updatedAt": "2026-06-01T00:00:00Z",
             }
-        )
+        ),
+        encoding="utf-8",
     )
     (brain / "task.md").write_text(
-        "# Task\n\nMigrate the auth middleware away from the legacy HMAC signer.\n"
+        "# Task\n\nMigrate the auth middleware away from the legacy HMAC signer.\n",
+        encoding="utf-8",
     )
     monkeypatch.setattr(antigravity, "_BRAIN_DIR", tmp_path / "brain")
 
@@ -576,10 +583,12 @@ def test_antigravity_companion_brain_transcript(tmp_path, monkeypatch):
                 "artifactType": "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
                 "summary": "Add CSV export to the invoice dashboard.",
             }
-        )
+        ),
+        encoding="utf-8",
     )
     (brain / "implementation_plan.md").write_text(
-        "# Implementation plan\n\nWire a CSV export button into the invoice list page.\n"
+        "# Implementation plan\n\nWire a CSV export button into the invoice list page.\n",
+        encoding="utf-8",
     )
     monkeypatch.setattr(antigravity, "_BRAIN_DIR", tmp_path / "brain")
 
@@ -731,7 +740,8 @@ def test_claude_skips_corrupt_lines(tmp_path, monkeypatch):
         "this line is not json at all {oops\n"
         '{"type":"assistant","message":{"role":"assistant","content":'
         '[{"type":"text","text":"ok"}]}}\n'
-        '{"type":"ai-title","aiTitle":"Good title","sessionId":"%s"}\n' % (sid, sid)
+        '{"type":"ai-title","aiTitle":"Good title","sessionId":"%s"}\n' % (sid, sid),
+        encoding="utf-8",
     )
     monkeypatch.setattr(claude_code, "_projects_root", lambda: projects)
     adapter = claude_code.ClaudeCodeAdapter()

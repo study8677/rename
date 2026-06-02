@@ -5,6 +5,26 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+- **Daemon: skip historical sessions by default.** First run records a
+  baseline timestamp in `state.json`; only sessions whose `last_active` is at
+  or after that baseline are eligible for the background loop. Existing
+  chats from before retitle was installed stay untouched unless the user
+  opts in. Bumps the GUI's `status --json` payload with `baseline_ts`.
+- **`retitle once --historical`** opt-in flag (CLI) and **"Rename historical
+  sessions"** button (macOS + Windows GUI) — confirms with a dialog, then
+  runs a full backlog pass with optional dry-run mode. Both GUIs show a
+  toast with the CLI summary when finished.
+
+### Fixed
+- **CI: Windows tests fail with `UnicodeEncodeError`** because `cp1252` is
+  the default codec there. Now passes `encoding="utf-8"` on every
+  `Path.write_text` in the test suite and exports `PYTHONUTF8=1` /
+  `PYTHONIOENCODING=utf-8` for all CI runners as a belt-and-suspenders.
+- CI: bump `actions/checkout@v4 → v5`, `actions/setup-python@v5 → v6`,
+  `actions/upload-artifact@v4 → v5`, macOS runner `macos-14 → macos-15`,
+  drop the now-redundant Windows GUI smoke job per user request.
+
 ## [0.5.0] - 2026-06-02
 
 ### Added

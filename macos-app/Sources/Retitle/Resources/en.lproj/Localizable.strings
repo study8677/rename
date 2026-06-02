@@ -43,6 +43,17 @@
 "dash_rename_now_button" = "Rename now";
 "dash_rename_now_tooltip" = "Rename this session now (bypasses idle gate)";
 "dash_rename_in_progress" = "Renaming…";
+"dash_rename_historical" = "Rename historical sessions";
+"dash_historical_running" = "Renaming history…";
+"dash_rename_historical_help" = "Rename every pre-existing chat that retitle skipped on first install. Can take a while.";
+"dash_historical_confirm_title" = "Rename all historical sessions?";
+"dash_historical_confirm_body" = "retitle will go through every conversation that existed before it started watching this machine and ask the namer for a fresh title. Depending on your backlog this can take a few minutes (heuristic namer) or much longer plus tokens (claude/codex/anthropic/openai). You can cancel anytime by quitting the app.";
+"dash_historical_confirm_run" = "Rename everything";
+"dash_historical_confirm_dry" = "Preview only (dry-run)";
+"dash_historical_confirm_cancel" = "Cancel";
+"toast_historical_started" = "Historical rename started — this can take a while.";
+"toast_historical_dry_started" = "Historical dry-run started — no files will be modified.";
+"toast_historical_done" = "Historical rename finished.";
 
 /* Human-readable reasons (from engine plan.reason strings) */
 "reason_active" = "still active";

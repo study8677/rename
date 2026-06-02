@@ -43,9 +43,27 @@ class Engine:
         self.state = state
 
     # -- assessment (never calls the namer) -------------------------------- #
-    def _assess(self, adapter: Adapter, s: Session, now_ts: float):
+    def _assess(
+        self,
+        adapter: Adapter,
+        s: Session,
+        now_ts: float,
+        *,
+        include_historical: bool = False,
+    ):
         """Return (status, sig, msgs) without naming. status is one of
-        active | no-activity | thin | unchanged | candidate."""
+        historical | active | no-activity | thin | unchanged | candidate.
+
+        ``historical`` means the session existed before the daemon's first
+        run on this machine — we leave those alone so retitle never
+        retroactively renames the user's entire chat history without consent.
+        Use the GUI's *Rename historical sessions* button (or
+        ``retitle once --historical``) to opt in.
+        """
+        if not include_historical:
+            baseline = self.state.baseline()
+            if baseline is not None and s.last_active < baseline:
+                return ("historical", None, None)
         if s.idle_seconds(now_ts) < self.cfg.idle_seconds:
             return ("active", None, None)
         prev = self.state.get(adapter.name, s.id)
@@ -77,8 +95,22 @@ class Engine:
         self.state.update(adapter.name, s.id, **fields)
 
     # -- planning (used by `retitle list` for preview) --------------------- #
-    def _plan_one(self, adapter: Adapter, s: Session, now_ts: float) -> RenamePlan:
-        status, sig, msgs = self._assess(adapter, s, now_ts)
+    def _plan_one(
+        self,
+        adapter: Adapter,
+        s: Session,
+        now_ts: float,
+        *,
+        include_historical: bool = False,
+    ) -> RenamePlan:
+        status, sig, msgs = self._assess(
+            adapter, s, now_ts, include_historical=include_historical
+        )
+        if status == "historical":
+            return RenamePlan(
+                s, "skip",
+                reason="pre-existing (run `retitle once --historical` to rename)",
+            )
         if status == "active":
             return RenamePlan(
                 s, "skip", reason=f"active ({util.fmt_dur(s.idle_seconds(now_ts))} idle)"
@@ -114,7 +146,7 @@ class Engine:
             reason=f"idle {util.fmt_dur(s.idle_seconds(now_ts))}",
         )
 
-    def plan(self, now_ts: float | None = None):
+    def plan(self, now_ts: float | None = None, *, include_historical: bool = False):
         now_ts = util.now() if now_ts is None else now_ts
         since = now_ts - self.cfg.max_age_days * 86400
         plans: list[tuple[Adapter, RenamePlan]] = []
@@ -130,7 +162,14 @@ class Engine:
             for s in sessions:
                 alive.add((adapter.name, s.id))
                 try:
-                    plans.append((adapter, self._plan_one(adapter, s, now_ts)))
+                    plans.append(
+                        (
+                            adapter,
+                            self._plan_one(
+                                adapter, s, now_ts, include_historical=include_historical
+                            ),
+                        )
+                    )
                 except Exception as exc:
                     util.log(
                         f"{adapter.name}: planning {s.short_id} failed: {exc}", level="warn"
@@ -143,17 +182,36 @@ class Engine:
         limit: int | None = None,
         progress: bool = False,
         session_filter: set[str] | None = None,
+        include_historical: bool = False,
     ) -> tuple[int, int]:
         """Run one pass. Renames at most `limit` candidates, most-recent first.
         limit=None uses cfg.batch_size; limit=0 (or batch_size 0) means no cap.
         ``session_filter``, if provided, restricts the pass to sessions whose
         id is in the set — used by ``retitle once --session ID`` for one-off
         manual renames from the GUI.
+        ``include_historical=True`` ignores the first-run baseline so the
+        engine can rename sessions that existed before the daemon started
+        watching this machine (the GUI's "Rename historical sessions" button).
         Returns (renamed, total_candidates)."""
         now_ts = util.now()
+        # On the very first pass we record a baseline so future automatic
+        # passes only touch newly-active conversations. Per-session forced
+        # renames and explicit historical passes bypass this.
+        baseline_was_set = self.state.baseline() is not None
+        if (
+            not baseline_was_set
+            and session_filter is None
+            and not include_historical
+        ):
+            self.state.ensure_baseline(now_ts)
         since = now_ts - self.cfg.max_age_days * 86400
         if limit is None:
             limit = self.cfg.batch_size or 0
+
+        # When the user explicitly clicks "Rename historical sessions", they
+        # want the whole backlog, regardless of cfg.max_age_days.
+        if include_historical:
+            since = 0.0
 
         candidates: list[tuple[Adapter, Session, str, list]] = []
         alive: set[tuple[str, str]] = set()
@@ -170,7 +228,13 @@ class Engine:
                     continue
                 alive.add((adapter.name, s.id))
                 try:
-                    status, sig, msgs = self._assess(adapter, s, now_ts)
+                    status, sig, msgs = self._assess(
+                        adapter,
+                        s,
+                        now_ts,
+                        # Per-session forced renames bypass the baseline gate.
+                        include_historical=include_historical or session_filter is not None,
+                    )
                 except Exception as exc:
                     util.log(
                         f"{adapter.name}: assessing {s.short_id} failed: {exc}", level="warn"

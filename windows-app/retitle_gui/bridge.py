@@ -93,6 +93,32 @@ class RetitleCLI:
         # rename can be slow (LLM call); cap at 4 minutes.
         self._run(args, timeout=240)
 
+    def rename_historical(self, dry_run: bool = False) -> str:
+        """Run a full historical rename pass — the GUI "Rename historical
+        sessions" button. Returns the last line of stderr as a short summary.
+        Can take a long time; callers should run on a background thread."""
+        args = ["once", "--historical", "--all"]
+        if dry_run:
+            args.append("--dry-run")
+        try:
+            res = subprocess.run(
+                [self.executable, *args],
+                capture_output=True,
+                timeout=60 * 60,  # 1 hour cap
+                check=False,
+            )
+        except FileNotFoundError as e:
+            raise RetitleError(f"retitle binary missing: {e}") from e
+        except subprocess.TimeoutExpired as e:
+            raise RetitleError("retitle once --historical timed out") from e
+        stderr = res.stderr.decode("utf-8", errors="replace")
+        if res.returncode != 0:
+            raise RetitleError(
+                f"retitle once --historical failed: "
+                f"{stderr.strip() or res.returncode}"
+            )
+        return stderr
+
 
 class DaemonControl:
     """Platform-specific daemon start/stop. On Windows retitle has no service

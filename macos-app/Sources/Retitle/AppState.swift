@@ -26,6 +26,8 @@ final class AppState: ObservableObject {
     @Published var settingsOpen = false
     @Published var showFDAOnboarding = false
     @Published var hasFullDiskAccess: Bool = false
+    @Published var isRunningHistorical = false
+    @Published var historicalSummary: String?
 
     private var statusTimer: Task<Void, Never>?
     private var titlesById: [String: String] = [:]        // tool|id -> title
@@ -139,6 +141,30 @@ final class AppState: ObservableObject {
             _ = try await Task.detached(priority: .userInitiated) {
                 try cli.renameSession(id: session.id, tool: session.tool)
             }.value
+        } catch {
+            lastError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+        await refreshSessions()
+    }
+
+    /// User-initiated full historical rename pass. Runs every backlog session
+    /// through the namer. Surfaces progress as `isRunningHistorical`; callers
+    /// should show a confirmation dialog before invoking.
+    func renameHistorical(dryRun: Bool = false) async {
+        guard let cli else { return }
+        isRunningHistorical = true
+        historicalSummary = nil
+        defer { isRunningHistorical = false }
+        do {
+            let out = try await Task.detached(priority: .utility) {
+                try cli.renameHistorical(dryRun: dryRun)
+            }.value
+            // CLI's "done — renamed N of M candidate(s)" lands on stderr.
+            // Take the last non-empty line as the summary for the toast.
+            let lines = out.split(whereSeparator: { $0.isNewline })
+                .map { String($0).trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            historicalSummary = lines.last
         } catch {
             lastError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }

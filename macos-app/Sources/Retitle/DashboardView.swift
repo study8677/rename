@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var searchText = ""
     @State private var renamingSessionId: String? = nil
     @State private var hoveredId: String? = nil
+    @State private var showHistoricalConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,6 +30,36 @@ struct DashboardView: View {
         }
         .onDisappear { state.dashboardOpen = false }
         .toastOverlay(toasts)
+        .confirmationDialog(
+            Text(LocalizedStringKey("dash_historical_confirm_title")),
+            isPresented: $showHistoricalConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(LocalizedStringKey("dash_historical_confirm_run"), role: .none) {
+                triggerHistorical(dryRun: false)
+            }
+            Button(LocalizedStringKey("dash_historical_confirm_dry"), role: .none) {
+                triggerHistorical(dryRun: true)
+            }
+            Button(LocalizedStringKey("dash_historical_confirm_cancel"), role: .cancel) {}
+        } message: {
+            Text(LocalizedStringKey("dash_historical_confirm_body"))
+        }
+    }
+
+    private func triggerHistorical(dryRun: Bool) {
+        toasts.info(NSLocalizedString(
+            dryRun ? "toast_historical_dry_started" : "toast_historical_started",
+            comment: ""
+        ))
+        Task {
+            await state.renameHistorical(dryRun: dryRun)
+            if let summary = state.historicalSummary {
+                toasts.success(summary)
+            } else if state.lastError == nil {
+                toasts.success(NSLocalizedString("toast_historical_done", comment: ""))
+            }
+        }
     }
 
     // MARK: - stats header -------------------------------------------------
@@ -339,6 +370,26 @@ struct DashboardView: View {
                 } label: {
                     Label(LocalizedStringKey("dash_show_log"), systemImage: "doc.text")
                 }
+            }
+
+            // "Rename historical sessions" — user-initiated bulk rename of
+            // pre-existing chats. We only show it when there is something to
+            // do (baseline has been set, and the user hasn't already opted
+            // into running it through the dry-run flow).
+            if state.status?.baselineTs != nil {
+                Button {
+                    showHistoricalConfirm = true
+                } label: {
+                    if state.isRunningHistorical {
+                        Label(LocalizedStringKey("dash_historical_running"),
+                              systemImage: "clock.arrow.circlepath")
+                    } else {
+                        Label(LocalizedStringKey("dash_rename_historical"),
+                              systemImage: "clock.arrow.circlepath")
+                    }
+                }
+                .disabled(state.isRunningHistorical)
+                .help(Text(LocalizedStringKey("dash_rename_historical_help")))
             }
 
             Spacer()

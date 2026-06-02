@@ -58,6 +58,32 @@ _STRINGS = {
         "zh-Hans": "搜索标题、新名字或路径",
     },
     "rename_now": {"en": "Rename now", "zh-Hans": "立即改名"},
+    "rename_historical": {
+        "en": "Rename historical sessions",
+        "zh-Hans": "改名历史会话",
+    },
+    "historical_confirm_title": {
+        "en": "Rename all historical sessions?",
+        "zh-Hans": "确定改名所有历史会话?",
+    },
+    "historical_confirm_body": {
+        "en": "retitle will send every pre-existing conversation through the "
+              "namer. This can take a while and (with claude/codex/anthropic/openai) "
+              "consume tokens. Continue?",
+        "zh-Hans": "retitle 会把每一个历史会话都送给 namer。这可能需要一段时间,"
+                   "如果你用的是 claude / codex / anthropic / openai,还会消耗 token。继续?",
+    },
+    "historical_run": {"en": "Rename everything", "zh-Hans": "全部改名"},
+    "historical_dry": {"en": "Preview only", "zh-Hans": "只预览"},
+    "historical_cancel": {"en": "Cancel", "zh-Hans": "取消"},
+    "toast_historical_started": {
+        "en": "Historical rename started — this can take a while.",
+        "zh-Hans": "历史改名已开始——会有一段时间。",
+    },
+    "toast_historical_done": {
+        "en": "Historical rename finished.",
+        "zh-Hans": "历史改名已完成。",
+    },
     "rename_in_progress": {"en": "Renaming…", "zh-Hans": "改名中…"},
     "refresh": {"en": "Refresh", "zh-Hans": "刷新"},
     "scanning": {"en": "Scanning…", "zh-Hans": "扫描中…"},

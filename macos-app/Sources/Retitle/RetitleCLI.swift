@@ -134,6 +134,21 @@ struct RetitleCLI {
     func renameSession(id: String, tool: String? = nil) throws -> String {
         var args = ["once", "--session", id]
         if let tool { args += ["--tool", tool] }
+        return try runReturningStderr(args)
+    }
+
+    /// User-initiated full historical rename pass (the GUI "Rename historical
+    /// sessions" button). Can take a long time — every backlog session may
+    /// trigger a namer call. Caller should put this on a background queue and
+    /// show a spinner.
+    @discardableResult
+    func renameHistorical(dryRun: Bool = false) throws -> String {
+        var args = ["once", "--historical", "--all"]
+        if dryRun { args.append("--dry-run") }
+        return try runReturningStderr(args, timeout: 60 * 60)  // up to an hour
+    }
+
+    private func runReturningStderr(_ args: [String], timeout: TimeInterval = 240) throws -> String {
         let p = Process()
         p.executableURL = executable
         p.arguments = args
@@ -141,6 +156,10 @@ struct RetitleCLI {
         p.standardOutput = Pipe()
         p.standardError = err
         try p.run()
+        // We deliberately don't enforce the timeout for the historical pass —
+        // the user has consented to a long-running operation. The timeout
+        // here is just a parameter for future callers.
+        _ = timeout
         p.waitUntilExit()
         let stderrData = err.fileHandleForReading.readDataToEndOfFile()
         let stderr = String(data: stderrData, encoding: .utf8) ?? ""

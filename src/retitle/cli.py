@@ -97,18 +97,27 @@ def cmd_run(args) -> int:
     if not adapters:
         util.log("no supported tools found on this machine.", level="warn")
         return 1
+    include_historical = bool(getattr(args, "historical", False))
     if args.once:
         all_ = getattr(args, "all", False)
-        limit = 0 if (all_ or session_filter) else getattr(args, "limit", None)
-        if all_ and namer.name != "heuristic" and not cfg.dry_run:
+        limit = (
+            0
+            if (all_ or session_filter or include_historical)
+            else getattr(args, "limit", None)
+        )
+        if (all_ or include_historical) and namer.name != "heuristic" and not cfg.dry_run:
+            scope = "ALL historical sessions" if include_historical else "ALL eligible sessions"
             util.log(
-                f"renaming ALL eligible sessions via '{namer.name}' — this can take "
+                f"renaming {scope} via '{namer.name}' — this can take "
                 "a while and use credits. Ctrl-C to stop; add --dry-run to preview, "
                 "or --namer heuristic for instant offline titles.",
                 level="warn",
             )
         renamed, total = engine.tick(
-            limit=limit, progress=True, session_filter=session_filter
+            limit=limit,
+            progress=True,
+            session_filter=session_filter,
+            include_historical=include_historical,
         )
         util.log(f"done — renamed {renamed} of {total} candidate(s)")
         return 0
@@ -186,10 +195,20 @@ def cmd_status(args) -> int:
     cp = util.config_path()
     sp = util.state_path()
     tracked = 0
+    baseline_ts: float | None = None
     if sp.exists():
         try:
             data = json.loads(sp.read_text("utf-8"))
-            tracked = sum(len(v) for v in data.values())
+            for k, v in data.items():
+                if k == "_meta" and isinstance(v, dict):
+                    raw = v.get("baseline_ts")
+                    if raw is not None:
+                        try:
+                            baseline_ts = float(raw)
+                        except (TypeError, ValueError):
+                            pass
+                elif isinstance(v, dict):
+                    tracked += len(v)
         except (json.JSONDecodeError, OSError):
             pass
     resolved = get_namer(cfg).name
@@ -202,6 +221,7 @@ def cmd_status(args) -> int:
             "config_exists": cp.exists(),
             "state_path": str(sp),
             "tracked": tracked,
+            "baseline_ts": baseline_ts,
             "log_path": str(util.log_path()),
             "namer": cfg.namer,
             "namer_resolved": resolved,
@@ -482,6 +502,12 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument(
         "--all", action="store_true", help="with --once: rename ALL eligible sessions now"
     )
+    pr.add_argument(
+        "--historical",
+        action="store_true",
+        help="also include sessions that existed before retitle's first run "
+        "(by default the daemon only touches conversations active after install)",
+    )
     pr.set_defaults(func=cmd_run)
 
     po = sub.add_parser("once", help="single pass, then exit (alias for `run --once`)")
@@ -492,6 +518,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--all",
         action="store_true",
         help="rename ALL eligible sessions now (idle 0, no age limit, no batch cap)",
+    )
+    po.add_argument(
+        "--historical",
+        action="store_true",
+        help="also include sessions that existed before retitle's first run; "
+        "implies --all and ignores --max-age-days. Use this to opt-in to "
+        "renaming your entire chat history (the GUI's 'Rename historical "
+        "sessions' button does the same thing).",
     )
     po.add_argument(
         "--session",
@@ -562,6 +596,8 @@ _DEFAULTS = {
     "once": False,
     "interval": None,
     "dry_run": False,
+    "historical": False,
+    "session": None,
     "idle": None,
     "namer": None,
     "tool": None,

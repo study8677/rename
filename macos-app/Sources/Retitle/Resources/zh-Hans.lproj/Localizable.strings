@@ -43,6 +43,17 @@
 "dash_rename_now_button" = "立即改名";
 "dash_rename_now_tooltip" = "立即给这个会话改名(跳过空闲闸门)";
 "dash_rename_in_progress" = "改名中…";
+"dash_rename_historical" = "改名历史会话";
+"dash_historical_running" = "历史改名中…";
+"dash_rename_historical_help" = "把首次安装时跳过的所有历史会话也跑一遍改名。耗时较长。";
+"dash_historical_confirm_title" = "确定改名所有历史会话?";
+"dash_historical_confirm_body" = "retitle 会把这台机器开始被监控之前就存在的每一个会话都送给 namer 生成新标题。根据你历史会话的数量,这可能需要几分钟(heuristic namer)或更久并消耗 token(claude / codex / anthropic / openai)。你随时可以退出 app 来取消。";
+"dash_historical_confirm_run" = "全部改名";
+"dash_historical_confirm_dry" = "只预览(dry-run)";
+"dash_historical_confirm_cancel" = "取消";
+"toast_historical_started" = "历史改名已开始——会有一段时间。";
+"toast_historical_dry_started" = "历史 dry-run 已开始——不会修改任何文件。";
+"toast_historical_done" = "历史改名已完成。";
 
 /* 人类可读的状态原因(对应 engine plan.reason) */
 "reason_active" = "对话还活跃";

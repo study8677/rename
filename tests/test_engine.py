@@ -44,6 +44,10 @@ class FakeNamer(Namer):
 def _engine(tmp_path, adapter, namer, **cfg_kw):
     cfg = Config(idle_seconds=300, max_age_days=30, min_user_messages=1, **cfg_kw)
     state = StateStore(tmp_path / "state.json")
+    # Tests exercise the default rename path, which in production is gated by
+    # the first-run baseline. Backdate it so test sessions (which sit "10
+    # minutes ago") count as new activity rather than historical backlog.
+    state.set_baseline(0.0)
     return Engine(cfg, [adapter], namer, state)
 
 
@@ -199,7 +203,10 @@ def test_end_to_end_real_claude_adapter(tmp_path, monkeypatch):
         },
         {"type": "ai-title", "aiTitle": "Initial topic", "sessionId": sid},
     ]
-    f.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
+    f.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n",
+        encoding="utf-8",
+    )
     old = time.time() - 600  # idle 10 minutes
     os.utime(f, (old, old))
 
@@ -211,3 +218,53 @@ def test_end_to_end_real_claude_adapter(tmp_path, monkeypatch):
     new_title = claude_code._last_ai_title(f)
     assert new_title != "Initial topic"
     assert "csv" in new_title.lower()
+
+
+# --------------------------------------------------------------------------- #
+# Historical baseline: pre-install sessions must not be auto-renamed.
+# --------------------------------------------------------------------------- #
+def _historical_engine(tmp_path, adapter, namer):
+    """Same as `_engine`, but with NO pre-set baseline — so the engine will
+    record one on its first tick, and historical sessions get skipped."""
+    cfg = Config(idle_seconds=300, max_age_days=30, min_user_messages=1)
+    state = StateStore(tmp_path / "state.json")
+    return Engine(cfg, [adapter], namer, state)
+
+
+def test_first_tick_records_baseline_and_skips_old_sessions(tmp_path):
+    """A fresh install must NOT retroactively rename pre-existing chats."""
+    s = _idle_session()  # last_active = 10 minutes ago
+    adapter = FakeAdapter([s], TRANSCRIPT)
+    eng = _historical_engine(tmp_path, adapter, FakeNamer("Billing export"))
+    renamed, _ = eng.tick()
+    assert renamed == 0          # historical, skipped
+    assert adapter.writes == []  # never renamed
+    assert eng.state.baseline() is not None  # baseline recorded
+
+
+def test_historical_flag_lets_user_opt_in(tmp_path):
+    """The "Rename historical sessions" path renames the backlog on request."""
+    s = _idle_session()
+    adapter = FakeAdapter([s], TRANSCRIPT)
+    eng = _historical_engine(tmp_path, adapter, FakeNamer("Billing export"))
+    eng.tick()  # records baseline, skips
+    renamed, _ = eng.tick(include_historical=True)
+    assert renamed == 1
+    assert adapter.writes == [("s1", "Billing export")]
+
+
+def test_baseline_does_not_block_new_activity(tmp_path):
+    """After baseline is set, a session that becomes active later still
+    gets renamed — only the pre-existing backlog is held back."""
+    s = _idle_session()
+    adapter = FakeAdapter([s], TRANSCRIPT)
+    eng = _historical_engine(tmp_path, adapter, FakeNamer("Billing export"))
+    eng.tick()  # baseline set ≈ now, s is historical, skipped
+    # Simulate the user touching the session right now — its last_active
+    # moves well past the baseline.
+    time.sleep(0.05)  # nudge clock so last_active > baseline unambiguously
+    s.last_active = time.time()
+    eng.cfg.idle_seconds = 0  # otherwise "active" gate keeps it out
+    renamed, _ = eng.tick()
+    assert renamed == 1
+    assert adapter.writes == [("s1", "Billing export")]
