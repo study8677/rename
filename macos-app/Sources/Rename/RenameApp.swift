@@ -14,7 +14,46 @@ import AppKit
 final class RenameAppDelegate: NSObject, NSApplicationDelegate {
     static let openDashboardOnLaunch = Notification.Name("rename.openDashboardOnLaunch")
 
+    /// Single-instance gate. Runs before SwiftUI has a chance to wire up any
+    /// state — if another Rename process already owns this bundle id, hand
+    /// focus to it and quit this duplicate immediately. Otherwise users can
+    /// end up with two menu-bar icons, two daemons polling on top of each
+    /// other, and two Dashboards.
+    func applicationWillFinishLaunching(_ note: Notification) {
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.github.rename.app"
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .filter { $0.processIdentifier != myPID }
+        guard let existing = others.first else { return }
+
+        // Surface the original instance and ask it to pop the Dashboard
+        // (the user wouldn't have re-launched us if they didn't want a
+        // window). Distributed notification crosses the process boundary.
+        existing.activate(options: [])
+        DistributedNotificationCenter.default().post(
+            name: Notification.Name("rename.activateDashboardFromOther"),
+            object: bundleID
+        )
+        // Quit the duplicate before SwiftUI builds its scenes.
+        NSApp.terminate(nil)
+    }
+
     func applicationDidFinishLaunching(_ note: Notification) {
+        // The original instance listens for the cross-process activation
+        // signal sent by the duplicate before it quit.
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("rename.activateDashboardFromOther"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            NSApp.setActivationPolicy(.regular)
+            NotificationCenter.default.post(
+                name: Self.openDashboardOnLaunch, object: nil
+            )
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
         if shouldAutoOpenDashboard() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 // Flip policy BEFORE posting the notification — switching
