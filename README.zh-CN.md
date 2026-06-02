@@ -228,40 +228,59 @@ retitle status        # 会显示 auto 实际解析到了谁，例如 "namer=aut
 
 ---
 
-## 可选:原生 macOS app(菜单栏 + 仪表盘)
+## 可选:GUI app(菜单栏 + 仪表盘)
 
-仓库里带了一个 **SwiftUI 写的小 app**,在 [`macos-app/`](macos-app/) 目录下,
-方便你不进终端也能看到 daemon 在干什么。它只是 CLI 的一层 viewer——所有真正的
-工作还是 Python daemon 在做(你之前 `retitle install` 装好的那个)。
+仓库里带了**两个**可选的 GUI 前端——都只是 Python CLI 的一层 viewer,真正
+做改名的还是你之前 `retitle install` 装好的那个 daemon。
 
-**功能**
+| 平台 | 目录 | 工具栈 | 状态 |
+|---|---|---|---|
+| **macOS 原生** | [`macos-app/`](macos-app/) | Swift + SwiftUI,只需 Command Line Tools | ✅ 已测试 |
+| **Windows / 跨平台** | [`windows-app/`](windows-app/) | Python + PySide6 (Qt6),Windows / macOS / Linux 都能跑 | ⚠ 未测试 — 详见对应 README |
 
-- **菜单栏图标** — 运行/暂停状态、最近 5 次改名(旧标题 → 新标题)、暂停/恢复
-  daemon、立即刷新、打开仪表盘、退出
-- **仪表盘窗口** — 顶部统计(已追踪 / 会话数 / 待处理 / 累计改名);工具过滤
-  (全部 / Claude Code / Codex / Cursor / Antigravity);搜索框;每个会话一行,
-  显示当前标题、即将改成的新标题、cwd、空闲时长,**每行有 "立即改名" 按钮**
-  (跳过空闲闸门,只针对这一个会话);一键打开配置 / 日志
+两个 app 的功能集是**对等的**:
 
-**构建并运行**(只需 Command Line Tools,不需要完整 Xcode):
+- **托盘 / 菜单栏图标** — 显示运行 / 暂停状态,展示最近几次改名(旧标题 → 新标题)
+- **仪表盘窗口** — 顶部 stat 卡片(已追踪 / 会话数 / 待处理 / 累计改名);带品牌色的
+  工具过滤(Claude / Codex / Cursor / Antigravity);跨标题 + 路径搜索;每行的
+  "立即改名" 按钮(跳过空闲闸门);改名前后 diff 显示
+- **可视化设置面板** — 滑块、下拉、勾选框,读写你的 `config.toml`,不用手编 TOML
+- **人类化进度** — 没有任何原始 stderr;所有信息都翻译成 toast 或系统通知
+- **首次启动权限引导**(macOS)— 一键跳到系统设置 → 完全磁盘访问,授权一次后
+  系统就不会每次扫描都弹权限框
+- **懒扫描** — 只在仪表盘打开 / 你手动点 Refresh 时才扫描会话,平时只 poll 轻量的
+  status,避免反复触发权限对话框
+- **国际化** — 英文 + 简体中文,跟随系统语言自动切换
+
+### macOS 构建
 
 ```bash
-# 在仓库根目录
 cd macos-app
 ./build-app.sh
 open Retitle.app
 ```
 
-把 `Retitle.app` 拖到 `~/Applications`,然后在系统**登录项**里加上它,
-重启之后菜单栏图标会自动出现。这个 app 设了 `LSUIElement`——只在菜单栏出现,
-不在 Dock 或 ⌘-Tab 里显示。
+把 `Retitle.app` 拖到 `~/Applications`,登录项加上,重启后自动启动菜单栏图标。
+这是 `LSUIElement` app——只在菜单栏出现,不上 Dock。
 
-**国际化** — 支持英文和简体中文,跟随系统语言自动切换。
+### Windows 构建
 
-**架构** — Swift + SwiftUI,~1k 行代码。通过 `Process` + JSON 调用 Python CLI
-(`retitle status --json` / `list --json` / `stats --json` / `once --session <id>`)。
-Daemon 控制就是给现有 `.plist` 调 `launchctl load / unload`。没有新增任何
-状态或存储——CLI 仍然是唯一的真理来源。
+```powershell
+cd windows-app
+python -m venv .venv ; .venv\Scripts\activate
+pip install -e .
+retitle-gui
+```
+
+开机自启:把 `retitle-gui` 的快捷方式扔到
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`。
+
+### 架构
+
+两个 app 都通过 `subprocess` / `Process` 调 Python CLI,数据走 JSON。CLI 提供
+`retitle status --json` / `list --json` / `stats --json` / `search --json` /
+`once --session <id>` 等命令——GUI 调它们,展示结果。**没有新增任何状态、存储
+或额外 daemon**,Python daemon 仍然是唯一的真理来源。
 
 ---
 

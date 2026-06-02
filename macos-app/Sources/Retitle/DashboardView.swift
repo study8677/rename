@@ -1,131 +1,207 @@
 import SwiftUI
 
-/// Main window: stats header, tool filter, search, session table, footer.
+/// Main dashboard window. Built to be friendly at a glance: card-style stats,
+/// brand-coloured tool filters, hover effects, clear rename diff, and toast
+/// notifications instead of raw stderr.
 struct DashboardView: View {
     @EnvironmentObject var state: AppState
-    @State private var selectedTool: String? = nil    // nil = all tools
+    @EnvironmentObject var toasts: ToastCenter
+    @Environment(\.openWindow) private var openWindow
+    @State private var selectedTool: String? = nil
     @State private var searchText = ""
     @State private var renamingSessionId: String? = nil
+    @State private var hoveredId: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             statsHeader
             Divider()
             filterBar
-            Divider()
             sessionTable
             Divider()
             footer
         }
-        .frame(minWidth: 720, minHeight: 480)
+        .frame(minWidth: 760, minHeight: 520)
+        .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
             state.dashboardOpen = true
-            Task { await state.refresh() }
+            Task { await state.refreshSessions() }
         }
         .onDisappear { state.dashboardOpen = false }
+        .toastOverlay(toasts)
     }
 
-    // MARK: - Stats header --------------------------------------------------
+    // MARK: - stats header -------------------------------------------------
 
     private var statsHeader: some View {
-        HStack(spacing: 16) {
-            statCard(LocalizedStringKey("dash_tracked"), value: "\(state.status?.tracked ?? 0)")
-            statCard(
-                LocalizedStringKey("dash_total_sessions"),
-                value: "\(state.stats?.total.sessions ?? state.sessions.count)"
-            )
-            statCard(
-                LocalizedStringKey("dash_stale"),
-                value: "\(state.stats?.total.stale ?? 0)"
-            )
-            statCard(
-                LocalizedStringKey("dash_renamed_lifetime"),
-                value: "\(state.stats?.total.renamed ?? 0)"
-            )
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                if let st = state.status {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(st.daemon.isRunning ? Color.green : Color.orange)
-                            .frame(width: 8, height: 8)
-                        Text(st.daemon.isRunning
-                             ? LocalizedStringKey("dash_daemon_running")
-                             : LocalizedStringKey("dash_daemon_stopped"))
-                            .font(.callout)
-                    }
-                    Text(verbatim: "namer: \(st.namerResolved)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                statCard(
+                    title: LocalizedStringKey("dash_tracked"),
+                    value: "\(state.status?.tracked ?? 0)",
+                    icon: "tray.full",
+                    tint: .blue
+                )
+                statCard(
+                    title: LocalizedStringKey("dash_total_sessions"),
+                    value: "\(state.stats?.total.sessions ?? state.sessions.count)",
+                    icon: "doc.on.doc",
+                    tint: .purple
+                )
+                statCard(
+                    title: LocalizedStringKey("dash_stale"),
+                    value: "\(state.stats?.total.stale ?? 0)",
+                    icon: "clock.badge",
+                    tint: .orange
+                )
+                statCard(
+                    title: LocalizedStringKey("dash_renamed_lifetime"),
+                    value: "\(state.stats?.total.renamed ?? 0)",
+                    icon: "sparkles",
+                    tint: .green
+                )
+                Spacer()
+                statusPill
             }
+            .padding(.horizontal, 18).padding(.vertical, 16)
         }
-        .padding(16)
     }
 
     @ViewBuilder
-    private func statCard(_ title: LocalizedStringKey, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: value).font(.title2).fontWeight(.semibold)
+    private func statCard(
+        title: LocalizedStringKey, value: String, icon: String, tint: Color
+    ) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(tint.opacity(0.18))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon).foregroundStyle(tint)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: value).font(.title2).fontWeight(.semibold).monospacedDigit()
+                Text(title).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.5)))
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.quaternary.opacity(0.4))
+        )
     }
 
-    // MARK: - Filter bar ----------------------------------------------------
+    @ViewBuilder
+    private var statusPill: some View {
+        if let st = state.status {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(st.daemon.isRunning ? Color.green : Color.orange)
+                    .frame(width: 8, height: 8)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(st.daemon.isRunning
+                         ? LocalizedStringKey("dash_daemon_running")
+                         : LocalizedStringKey("dash_daemon_stopped"))
+                        .font(.callout).fontWeight(.medium)
+                    Text(verbatim: "namer: \(st.namerResolved)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(
+                Capsule().fill(.quaternary.opacity(0.4))
+            )
+        }
+    }
+
+    // MARK: - filter bar --------------------------------------------------
 
     private var filterBar: some View {
-        HStack(spacing: 10) {
-            Button(action: { selectedTool = nil }) {
+        HStack(spacing: 8) {
+            chip(label: nil, selected: selectedTool == nil) {
                 Text(LocalizedStringKey("dash_filter_all"))
-                    .fontWeight(selectedTool == nil ? .semibold : .regular)
+            } onTap: {
+                selectedTool = nil
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 10).padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(selectedTool == nil ? Color.accentColor.opacity(0.2) : .clear)
-            )
 
             ForEach(state.status?.tools ?? []) { tool in
-                Button(action: { selectedTool = tool.name }) {
+                Button {
+                    if tool.available { selectedTool = tool.name }
+                } label: {
                     HStack(spacing: 4) {
-                        Text(verbatim: tool.label)
-                            .fontWeight(selectedTool == tool.name ? .semibold : .regular)
+                        Image(systemName: ToolBadge(tool: tool.name).icon)
+                            .font(.caption)
+                        Text(verbatim: tool.label).font(.callout)
                         if !tool.enabled {
                             Image(systemName: "minus.circle")
-                                .foregroundStyle(.secondary)
-                                .font(.caption)
+                                .foregroundStyle(.secondary).font(.caption2)
                         }
                     }
+                    .padding(.horizontal, 12).padding(.vertical, 5)
+                    .background(
+                        Capsule().fill(
+                            selectedTool == tool.name
+                            ? ToolBadge(tool: tool.name).color.opacity(0.25)
+                            : Color.clear
+                        )
+                    )
+                    .overlay(
+                        Capsule().stroke(
+                            selectedTool == tool.name
+                            ? ToolBadge(tool: tool.name).color
+                            : Color.gray.opacity(0.25),
+                            lineWidth: 1
+                        )
+                    )
+                    .foregroundStyle(tool.available ? Color.primary : Color.secondary)
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(selectedTool == tool.name ? Color.accentColor.opacity(0.2) : .clear)
-                )
                 .disabled(!tool.available)
-                .opacity(tool.available ? 1 : 0.4)
             }
 
             Spacer()
-            TextField(LocalizedStringKey("dash_search_placeholder"), text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 220)
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary).font(.callout)
+                TextField(LocalizedStringKey("dash_search_placeholder"), text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(Capsule().fill(.quaternary.opacity(0.4)))
+            .frame(maxWidth: 240)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 18).padding(.vertical, 10)
     }
 
-    // MARK: - Session table -------------------------------------------------
+    @ViewBuilder
+    private func chip<Label: View>(
+        label: String?,
+        selected: Bool,
+        @ViewBuilder content: () -> Label,
+        onTap: @escaping () -> Void
+    ) -> some View {
+        Button(action: onTap) {
+            content()
+                .font(.callout)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(
+                    Capsule().fill(selected ? Color.accentColor.opacity(0.18) : Color.clear)
+                )
+                .overlay(
+                    Capsule().stroke(
+                        selected ? Color.accentColor : Color.gray.opacity(0.25),
+                        lineWidth: 1
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - session table -----------------------------------------------
 
     private var filteredSessions: [SessionPlan] {
         var rows = state.sessions
-        if let tool = selectedTool {
-            rows = rows.filter { $0.tool == tool }
-        }
+        if let tool = selectedTool { rows = rows.filter { $0.tool == tool } }
         let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         if !q.isEmpty {
             rows = rows.filter {
@@ -137,44 +213,93 @@ struct DashboardView: View {
         return rows
     }
 
+    @ViewBuilder
     private var sessionTable: some View {
-        ScrollView {
-            if filteredSessions.isEmpty {
-                VStack(spacing: 8) {
-                    if state.isRefreshing {
-                        ProgressView()
-                        Text(LocalizedStringKey("dash_loading"))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Image(systemName: "tray").font(.largeTitle).foregroundStyle(.secondary)
-                        Text(LocalizedStringKey("dash_no_sessions"))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity).padding(40)
-            } else {
+        if state.isRefreshing && state.sessions.isEmpty {
+            loadingScreen
+        } else if filteredSessions.isEmpty {
+            emptyScreen
+        } else {
+            ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(filteredSessions) { row in
-                        SessionRowView(plan: row, busy: renamingSessionId == row.id) {
-                            renamingSessionId = row.id
-                            Task {
-                                await state.renameNow(row)
-                                renamingSessionId = nil
+                        SessionRowView(
+                            plan: row,
+                            busy: renamingSessionId == row.id,
+                            hovered: hoveredId == row.id,
+                            onRenameNow: { renameNow(row) },
+                            onHover: { isHovering in
+                                hoveredId = isHovering ? row.id : nil
                             }
-                        }
-                        Divider()
+                        )
+                        Divider().opacity(0.4)
                     }
                 }
             }
         }
     }
 
-    // MARK: - Footer --------------------------------------------------------
+    private var loadingScreen: some View {
+        VStack(spacing: 12) {
+            ProgressView().controlSize(.large)
+            Text(LocalizedStringKey("dash_loading"))
+                .foregroundStyle(.secondary)
+            Text(LocalizedStringKey("dash_loading_sub"))
+                .font(.caption).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 60)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).padding(40)
+    }
+
+    private var emptyScreen: some View {
+        VStack(spacing: 10) {
+            Image(systemName: state.sessions.isEmpty ? "questionmark.folder" : "magnifyingglass")
+                .font(.system(size: 36)).foregroundStyle(.secondary)
+            Text(state.sessions.isEmpty
+                 ? LocalizedStringKey("dash_empty_initial")
+                 : LocalizedStringKey("dash_empty_filtered"))
+                .foregroundStyle(.secondary)
+            if state.sessions.isEmpty {
+                Button(LocalizedStringKey("dash_empty_scan_now")) {
+                    Task { await state.refreshSessions() }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).padding(40)
+    }
+
+    private func renameNow(_ row: SessionPlan) {
+        renamingSessionId = row.id
+        Task {
+            await state.renameNow(row)
+            renamingSessionId = nil
+            if state.lastError == nil {
+                toasts.success(
+                    String(
+                        format: NSLocalizedString("toast_renamed_session_%@", comment: ""),
+                        row.proposedTitle ?? row.title ?? row.id.prefix(8) + "…"
+                    )
+                )
+            } else if let e = state.lastError {
+                toasts.error(e)
+                state.lastError = nil
+            }
+        }
+    }
+
+    // MARK: - footer ------------------------------------------------------
 
     private var footer: some View {
         HStack(spacing: 10) {
             Button {
-                Task { await state.refresh() }
+                Task {
+                    await state.refreshSessions()
+                    if state.lastError == nil {
+                        toasts.success(NSLocalizedString("toast_refreshed", comment: ""))
+                    }
+                }
             } label: {
                 Label(LocalizedStringKey("dash_refresh"), systemImage: "arrow.clockwise")
             }
@@ -184,36 +309,45 @@ struct DashboardView: View {
                 if st.daemon.isRunning {
                     Button {
                         state.pauseDaemon()
+                        toasts.info(NSLocalizedString("toast_daemon_paused", comment: ""))
                     } label: {
                         Label(LocalizedStringKey("dash_pause_daemon"), systemImage: "pause.circle")
                     }
                 } else if st.daemon.isInstalled {
                     Button {
                         state.resumeDaemon()
+                        toasts.success(NSLocalizedString("toast_daemon_resumed", comment: ""))
                     } label: {
-                        Label(LocalizedStringKey("dash_resume_daemon"), systemImage: "play.circle")
+                        Label(LocalizedStringKey("dash_resume_daemon"),
+                              systemImage: "play.circle")
                     }
                 }
+            }
 
+            Button {
+                state.settingsOpen = true
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Label(LocalizedStringKey("dash_settings"), systemImage: "gearshape")
+            }
+            .keyboardShortcut(",")
+
+            if let log = state.status?.logPath {
                 Button {
-                    state.openExternally(st.configPath)
-                } label: {
-                    Label(LocalizedStringKey("dash_open_config"), systemImage: "gearshape")
-                }
-                Button {
-                    state.openExternally(st.logPath)
+                    state.openExternally(log)
                 } label: {
                     Label(LocalizedStringKey("dash_show_log"), systemImage: "doc.text")
                 }
             }
+
             Spacer()
             if state.isRefreshing {
-                ProgressView().controlSize(.small)
-            }
-            if let err = state.lastError, !err.isEmpty {
-                Text(verbatim: err)
-                    .font(.caption).foregroundStyle(.red).lineLimit(1).truncationMode(.tail)
-                    .help(err)
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(LocalizedStringKey("dash_scanning_status"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             } else {
                 Text(verbatim: "\(filteredSessions.count) / \(state.sessions.count)")
                     .font(.caption).foregroundStyle(.secondary)
@@ -226,77 +360,104 @@ struct DashboardView: View {
 private struct SessionRowView: View {
     let plan: SessionPlan
     let busy: Bool
+    let hovered: Bool
     let onRenameNow: () -> Void
+    let onHover: (Bool) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            iconForTool(plan.tool)
-                .frame(width: 28)
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: plan.title ?? "—")
-                    .font(.body)
-                    .lineLimit(1)
+            ToolBadge(tool: plan.tool)
+                .frame(minWidth: 90, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 3) {
                 if let proposed = plan.proposedTitle, plan.action == "rename" {
-                    Text(verbatim: "→ \(proposed)")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(verbatim: plan.title ?? "—")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .strikethrough(color: .secondary)
+                            .lineLimit(1)
+                        Image(systemName: "arrow.right").foregroundStyle(.secondary).font(.caption)
+                        Text(verbatim: proposed)
+                            .font(.callout).fontWeight(.medium)
+                            .foregroundStyle(.green)
+                            .lineLimit(1)
+                    }
                 } else {
-                    Text(verbatim: plan.reason)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(verbatim: plan.title ?? "—")
+                        .font(.callout)
                         .lineLimit(1)
                 }
+                HStack(spacing: 6) {
+                    Image(systemName: "clock").font(.caption2)
+                    Text(verbatim: shortIdle(plan.idleSeconds))
+                    if let cwd = plan.cwd, !cwd.isEmpty {
+                        Text(verbatim: "·")
+                        Image(systemName: "folder").font(.caption2)
+                        Text(verbatim: shortenCwd(cwd))
+                            .lineLimit(1).help(cwd)
+                    }
+                    Text(verbatim: "·")
+                    Text(verbatim: humanReason(plan.reason))
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
-            Spacer()
-            if let cwd = plan.cwd, !cwd.isEmpty {
-                Text(verbatim: shortenCwd(cwd))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .frame(maxWidth: 180, alignment: .trailing)
-                    .help(cwd)
-            }
-            Text(verbatim: shortIdle(plan.idleSeconds))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .trailing)
+
+            Spacer(minLength: 8)
 
             Button(action: onRenameNow) {
                 if busy {
-                    ProgressView().controlSize(.small)
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.small)
+                        Text(LocalizedStringKey("dash_rename_in_progress"))
+                            .font(.caption)
+                    }
                 } else {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Label(
+                        LocalizedStringKey("dash_rename_now_button"),
+                        systemImage: "arrow.triangle.2.circlepath"
+                    )
+                    .labelStyle(.iconOnly)
                 }
             }
             .help(Text(LocalizedStringKey("dash_rename_now_tooltip")))
-            .buttonStyle(.borderless)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .disabled(busy)
+            .opacity(hovered || busy ? 1 : 0.55)
         }
-        .padding(.horizontal, 16).padding(.vertical, 8)
+        .padding(.horizontal, 18).padding(.vertical, 10)
+        .background(hovered ? Color.accentColor.opacity(0.06) : Color.clear)
         .contentShape(Rectangle())
+        .onHover(perform: onHover)
     }
 
-    private func iconForTool(_ tool: String) -> Image {
-        switch tool {
-        case "claude-code": return Image(systemName: "c.circle")
-        case "codex":       return Image(systemName: "chevron.left.forwardslash.chevron.right")
-        case "cursor":      return Image(systemName: "cursorarrow.rays")
-        case "antigravity": return Image(systemName: "atom")
-        default:            return Image(systemName: "doc")
+    /// Make engine "skip / not_idle / too_short / already current / rename ..."
+    /// reasons readable for end users.
+    private func humanReason(_ raw: String) -> String {
+        if raw.hasPrefix("idle ") {
+            return String(format: NSLocalizedString("reason_idle_%@", comment: ""),
+                          String(raw.dropFirst("idle ".count)))
+        }
+        switch raw {
+        case "active":           return NSLocalizedString("reason_active", comment: "")
+        case "too short":        return NSLocalizedString("reason_too_short", comment: "")
+        case "already current":  return NSLocalizedString("reason_already_current", comment: "")
+        case "user edited":      return NSLocalizedString("reason_user_edited", comment: "")
+        case "no namer":         return NSLocalizedString("reason_no_namer", comment: "")
+        case "no content":       return NSLocalizedString("reason_no_content", comment: "")
+        default:                 return raw
         }
     }
 
     private func shortenCwd(_ s: String) -> String {
         var path = s
-        if let r = path.range(of: "file://") { path.removeSubrange(r) }
-        if let r = path.range(of: "vscode-remote://") { path.removeSubrange(r) }
-        let home = NSHomeDirectory()
-        if path.hasPrefix(home) {
-            path = "~" + path.dropFirst(home.count)
+        if path.hasPrefix("file://") { path.removeFirst("file://".count) }
+        if path.hasPrefix("vscode-remote://") {
+            path.removeFirst("vscode-remote://".count)
         }
-        // Show last 2 path components for orientation.
+        let home = NSHomeDirectory()
+        if path.hasPrefix(home) { path = "~" + path.dropFirst(home.count) }
         let parts = path.split(separator: "/").suffix(2)
         return parts.isEmpty ? path : ".../" + parts.joined(separator: "/")
     }

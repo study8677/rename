@@ -1,0 +1,23 @@
+[project]
+name = "retitle-gui"
+version = "0.1.0"
+description = "Tray + dashboard GUI for retitle (Windows / cross-platform)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "JingWen Fan" }]
+dependencies = [
+    "PySide6>=6.5",
+    "retitle",
+]
+
+[project.scripts]
+retitle-gui = "retitle_gui.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["retitle_gui*"]

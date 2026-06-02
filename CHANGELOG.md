@@ -32,11 +32,28 @@ All notable changes to this project are documented here. Format loosely follows
   what made the whole Antigravity adapter possible.
 - **Optional native macOS app** in `macos-app/` — a Swift + SwiftUI menu-bar
   app (with a dashboard window) that talks to the existing Python CLI through
-  JSON. Lets you see what the daemon is doing without leaving the menu bar:
-  status, the last 5 renames, per-session "Rename now", pause/resume, and one-
-  click access to config + log. Localized in English and 简体中文. Builds with
-  just Command Line Tools (`./build-app.sh` → `Retitle.app`).
-- `retitle status --json` — structured output so the GUI can read config,
+  JSON. Highlights:
+  - Card-style stats header, brand-coloured tool filter chips, hover effects,
+    before/after diff rows
+  - **Visual settings panel** — sliders/spinners for idle / poll / batch sizes,
+    namer picker, per-tool toggles; reads/writes `~/.config/retitle/config.toml`
+    preserving comments
+  - **First-launch onboarding** — explains Full Disk Access with one-click
+    System Settings deep link; UserDefaults flag suppresses on subsequent
+    launches
+  - **Lazy data loading** — only the lightweight `status` poll runs in the
+    background (every 5 min); the heavy `list / stats` scan only fires when
+    the Dashboard is open or you hit Refresh. No more permission-prompt storm.
+  - **Toast notifications** — friendly messages ("Background renaming paused",
+    "Renamed to …") replace raw stderr surfacing in the UI
+  - Localized in English and 简体中文. Builds with just Command Line Tools
+    (`./build-app.sh` → `Retitle.app`).
+- **Optional Windows / cross-platform GUI** in `windows-app/` — Python +
+  PySide6 (Qt6). Mirrors the macOS app feature-for-feature using the same
+  CLI bridge. On Windows it can spawn/kill `retitle run` as a managed child
+  process (no native service integration there yet). Shipped untested by
+  the developer — pull requests with Windows fixes welcome.
+- `retitle status --json` — structured output so any GUI can read config,
   detected tools, namer resolution and daemon state.
 - `retitle once --session ID` (repeatable) — rename one specific session,
   bypassing the idle and substance gates. Powers the GUI "Rename now" button.

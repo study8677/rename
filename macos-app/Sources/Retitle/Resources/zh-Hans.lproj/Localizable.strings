@@ -1,34 +1,100 @@
 /* 菜单栏 */
 "menubar_running" = "retitle 运行中";
-"menubar_paused" = "retitle 已暂停";
+"menubar_running_sub" = "正在后台扫描空闲会话并改名。";
+"menubar_paused" = "已暂停";
+"menubar_paused_sub" = "后台服务已安装但没在跑。点 \"恢复\" 启动。";
+"menubar_no_daemon" = "后台服务未安装";
+"menubar_no_daemon_sub" = "在终端跑一次 `retitle install`,即可开启后台自动改名。";
 "menubar_loading" = "加载中…";
+"menubar_loading_sub" = "正在跟 retitle CLI 通信。";
 "menubar_cli_not_found" = "找不到 retitle 命令";
 "menubar_recent_renames" = "最近改名";
-"menubar_no_recent" = "暂无改名记录——daemon 下一轮扫描时会处理。";
+"menubar_no_recent" = "暂无改名记录。";
+"menubar_no_recent_sub" = "后台服务下一轮扫描时会自动处理。";
 "menubar_open_dashboard" = "打开仪表盘…";
+"menubar_settings" = "设置…";
 "menubar_pause_daemon" = "暂停后台服务";
 "menubar_resume_daemon" = "恢复后台服务";
 "menubar_refresh_now" = "立即刷新";
 "menubar_show_log" = "查看日志";
 "menubar_quit" = "退出 Retitle";
 
-/* 仪表盘窗口 */
+/* 仪表盘 */
 "dash_tracked" = "已追踪";
 "dash_total_sessions" = "会话总数";
-"dash_stale" = "待处理(空闲 ≥ 5 分钟)";
+"dash_stale" = "待处理";
 "dash_renamed_lifetime" = "累计改名";
 "dash_daemon_running" = "后台运行中";
 "dash_daemon_stopped" = "后台已停止";
 "dash_filter_all" = "全部";
-"dash_search_placeholder" = "搜索标题 / 路径";
-"dash_loading" = "加载会话中…";
-"dash_no_sessions" = "当前过滤条件下没有会话。";
+"dash_search_placeholder" = "搜索标题、新名字或路径";
+"dash_loading" = "正在扫描你的 AI 会话存储…";
+"dash_loading_sub" = "这是第一次扫描,macOS 可能会一次次问你权限。在系统设置里给 Retitle 加上完全磁盘访问,就再也不会弹了。";
+"dash_empty_initial" = "目前没有会话。";
+"dash_empty_filtered" = "当前过滤条件下没有会话。";
+"dash_empty_scan_now" = "立即扫描";
+"dash_scanning_status" = "扫描中…";
 "dash_refresh" = "刷新";
 "dash_pause_daemon" = "暂停";
 "dash_resume_daemon" = "恢复";
 "dash_open_config" = "打开配置";
+"dash_settings" = "设置";
 "dash_show_log" = "查看日志";
+"dash_rename_now_button" = "立即改名";
 "dash_rename_now_tooltip" = "立即给这个会话改名(跳过空闲闸门)";
+"dash_rename_in_progress" = "改名中…";
+
+/* 人类可读的状态原因(对应 engine plan.reason) */
+"reason_active" = "对话还活跃";
+"reason_too_short" = "内容太短,还起不了名字";
+"reason_already_current" = "标题已经准确";
+"reason_user_edited" = "用户手动改过";
+"reason_no_namer" = "namer 不可用";
+"reason_no_content" = "没有可读内容";
+"reason_idle_%@" = "已空闲 %@";
+
+/* 提示信息(toast) */
+"toast_renamed_session_%@" = "已改名为:%@";
+"toast_refreshed" = "会话已刷新。";
+"toast_daemon_paused" = "后台改名已暂停。";
+"toast_daemon_resumed" = "后台改名已恢复。";
+
+/* 引导(完全磁盘访问设置) */
+"fda_title" = "一次性设置:授予完全磁盘访问";
+"fda_body" = "retitle 需要读取 Claude Code、Codex、Cursor 和 Antigravity 的对话文件。如果没给完全磁盘访问,macOS 每次扫描都会弹权限对话框——很快就会让人崩溃。授权一次就清净了。";
+"fda_step1" = "点 \"打开系统设置\"。";
+"fda_step2" = "找到 隐私与安全性 → 完全磁盘访问。";
+"fda_step3" = "把 Retitle.app 拖进列表(或者按 + 添加)。不用重启。";
+"fda_already_granted" = "看起来完全磁盘访问已经授权了——可以关掉这个窗口。";
+"fda_remember" = "下次启动不要再显示";
+"fda_open_settings" = "打开系统设置";
+"fda_skip" = "暂时跳过";
+
+/* 设置 */
+"settings_window_title" = "Retitle 设置";
+"settings_section_renaming" = "改名规则";
+"settings_section_daemon" = "后台服务";
+"settings_section_namer" = "命名后端(新标题怎么生成)";
+"settings_section_tools" = "管理哪些工具";
+"settings_idle_seconds" = "会话空闲多久才动";
+"settings_idle_seconds_help" = "对话静止多长时间之后,retitle 才认为可以给它换新标题。";
+"settings_min_user_messages" = "至少需要多少条用户消息";
+"settings_min_user_messages_help" = "如果用户消息少于这个数,跳过——内容太少起不了名字。";
+"settings_max_age_days" = "最多往前看多少天";
+"settings_max_age_days_help" = "忽略超过这个天数没动过的会话。";
+"settings_poll_seconds" = "后台扫描间隔";
+"settings_poll_seconds_help" = "后台 daemon 多久醒一次去找空闲会话。";
+"settings_batch_size" = "每轮最多改多少个";
+"settings_batch_size_help" = "限制 daemon 一轮最多改的会话数,避免一次性把你的 claude/codex CLI 调爆。0 = 不限制。";
+"settings_dry_run" = "Dry-run(只预览,不写入任何改动)";
+"settings_dry_run_help" = "假装改名,但不真正修改任何文件。用来测试。";
+"settings_namer" = "Namer";
+"settings_namer_help" = "auto 会复用你本机已经登录的 claude / codex CLI(零 API key)。heuristic 是纯本地启发式,瞬间出结果。anthropic / openai 需要在环境变量里配 API key。";
+"settings_namer_resolved_%@" = "当前实际解析到:%@";
+"settings_tools_help" = "关闭的工具不会被动。本机没有数据的工具,名字旁边会有个 • 小点。";
+"settings_save" = "保存";
+"settings_revert" = "撤销改动";
+"settings_saved" = "已保存。下次后台扫描时会用上新值。";
 
 /* 错误 */
 "retitle_not_found" = "找不到 retitle 命令。请用 pipx install retitle 安装,或设置 RETITLE_BIN 环境变量。";
