@@ -31,7 +31,7 @@ want a unified GUI across machines, or you don't want to build Swift on Mac.
 
 ```powershell
 # Install rename first (the CLI is the source of truth; the GUI just talks to it)
-pipx install rename
+pipx install rename-cli
 
 # Then install the GUI
 pipx install rename-gui

@@ -32,8 +32,8 @@ _STRINGS = {
     },
     "loading": {"en": "Loading…", "zh-Hans": "加载中…"},
     "cli_not_found": {
-        "en": "rename CLI not found. Install with: pipx install rename",
-        "zh-Hans": "找不到 rename 命令。请用 pipx install rename 安装。",
+        "en": "rename CLI not found. Install with: pipx install rename-cli",
+        "zh-Hans": "找不到 rename 命令。请用 pipx install rename-cli 安装。",
     },
     "recent_renames": {"en": "Recent renames", "zh-Hans": "最近改名"},
     "no_recent": {

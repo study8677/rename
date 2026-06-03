@@ -3,7 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rename"
+# PyPI distribution name. The import package and the installed command are both
+# still `rename` (see [project.scripts]); only the published name differs,
+# because the bare `rename` name on PyPI is owned by an unrelated project.
+name = "rename-cli"
 version = "1.0.0"
 description = "Keep your AI coding sessions named after what they actually became — Claude Code, Codex, Cursor and more."
 readme = "README.md"
