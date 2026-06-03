@@ -230,11 +230,18 @@ back to a fully-offline heuristic if neither is installed. You never paste a key
 | `heuristic` | a cleaned-up snippet of your latest message; instant, offline | none |
 | `claude` | always the `claude` CLI (fast Haiku model) | none — your login |
 | `codex` | always the `codex` CLI (`gpt-5-codex`) | none — your login |
-| `anthropic` | Anthropic API directly | `ANTHROPIC_API_KEY` |
-| `openai` | OpenAI API directly | `OPENAI_API_KEY` |
+| `anthropic` | Anthropic API directly, with **your own key** | `api_key` or `ANTHROPIC_API_KEY` |
+| `openai` | OpenAI API directly, with **your own key** | `api_key` or `OPENAI_API_KEY` |
 
 Out of the box — nothing to configure, no key to paste — you get LLM-quality titles
 using credits you already have. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
+
+**Bring your own key.** Want to use your own Anthropic/OpenAI account instead of a
+logged-in CLI? Set `namer = "anthropic"` (or `"openai"`) and drop your key into the
+matching table in `config.toml` — `api_key = "sk-..."` — or export `ANTHROPIC_API_KEY`
+/ `OPENAI_API_KEY`. In the desktop app it's **Settings → Namer**: pick the provider and
+paste your key. It's written only to your local `config.toml` (locked to your user,
+`chmod 600`) and the transcript excerpt goes nowhere but the provider you chose.
 
 ```bash
 rename status        # shows what auto resolved to, e.g. "namer=auto → claude"
@@ -318,9 +325,11 @@ dry_run = false
 
 [anthropic]
 model = "claude-haiku-4-5"
+# api_key = "sk-ant-..."    # your own key (or set ANTHROPIC_API_KEY)
 
 [openai]
 model = "gpt-4o-mini"
+# api_key = "sk-..."        # your own key (or set OPENAI_API_KEY)
 ```
 
 Any field can be overridden per-invocation: `rename run --idle 600 --namer anthropic --tool cursor`.

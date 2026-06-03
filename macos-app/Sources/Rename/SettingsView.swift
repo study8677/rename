@@ -78,13 +78,15 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             }
+                            if ConfigStore.Values.usesAPIKey(values.namer) {
+                                apiKeyFields
+                            }
                         }
                     }
                     section(LocalizedStringKey("settings_section_tools")) {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(ConfigStore.Values.allTools, id: \.self) { tool in
                                 Toggle(
-                                    labelFor(tool: tool),
                                     isOn: Binding(
                                         get: { values.tools.contains(tool) },
                                         set: { isOn in
@@ -97,7 +99,17 @@ struct SettingsView: View {
                                             }
                                         }
                                     )
-                                )
+                                ) {
+                                    HStack(spacing: 6) {
+                                        Text(verbatim: labelFor(tool: tool))
+                                        if !isToolAvailable(tool) {
+                                            Text(LocalizedStringKey("settings_tool_not_installed"))
+                                                .font(.caption2).foregroundStyle(.secondary)
+                                                .padding(.horizontal, 6).padding(.vertical, 1)
+                                                .background(Capsule().fill(.quaternary.opacity(0.5)))
+                                        }
+                                    }
+                                }
                             }
                             Text(LocalizedStringKey("settings_tools_help"))
                                 .font(.caption).foregroundStyle(.secondary)
@@ -170,6 +182,61 @@ struct SettingsView: View {
 
     // MARK: - building blocks ----------------------------------------------
 
+    /// API key + model inputs for the `anthropic` / `openai` namers. The fields
+    /// edit whichever provider is currently selected, and write straight into
+    /// the `[anthropic]` / `[openai]` tables of the config file on Save.
+    @ViewBuilder
+    private var apiKeyFields: some View {
+        let isOpenAI = values.namer == "openai"
+        VStack(alignment: .leading, spacing: 8) {
+            Divider().padding(.vertical, 2)
+            HStack(spacing: 8) {
+                Text(LocalizedStringKey("settings_namer_apikey"))
+                    .frame(width: 64, alignment: .leading)
+                SecureField(isOpenAI ? "sk-…" : "sk-ant-…", text: apiKeyBinding)
+                    .textFieldStyle(.roundedBorder)
+            }
+            HStack(spacing: 8) {
+                Text(LocalizedStringKey("settings_namer_model"))
+                    .frame(width: 64, alignment: .leading)
+                TextField(
+                    isOpenAI
+                        ? ConfigStore.Values.defaultOpenAIModel
+                        : ConfigStore.Values.defaultAnthropicModel,
+                    text: apiModelBinding
+                )
+                .textFieldStyle(.roundedBorder)
+            }
+            if apiKeyBinding.wrappedValue
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Label(
+                    LocalizedStringKey("settings_namer_apikey_missing"),
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption).foregroundStyle(.orange)
+            }
+            HStack(spacing: 6) {
+                Text(LocalizedStringKey("settings_namer_apikey_help"))
+                    .font(.caption).foregroundStyle(.secondary)
+                Link(
+                    LocalizedStringKey("settings_namer_get_key"),
+                    destination: isOpenAI
+                        ? URL(string: "https://platform.openai.com/api-keys")!
+                        : URL(string: "https://console.anthropic.com/settings/keys")!
+                )
+                .font(.caption)
+            }
+        }
+    }
+
+    private var apiKeyBinding: Binding<String> {
+        values.namer == "openai" ? $values.openaiKey : $values.anthropicKey
+    }
+
+    private var apiModelBinding: Binding<String> {
+        values.namer == "openai" ? $values.openaiModel : $values.anthropicModel
+    }
+
     @ViewBuilder
     private func section<Content: View>(
         _ title: LocalizedStringKey,
@@ -210,6 +277,13 @@ struct SettingsView: View {
         }
     }
 
+    /// Whether the tool's data was found on this machine (from `status`).
+    /// Defaults to true until status loads, to avoid a misleading flash.
+    private func isToolAvailable(_ tool: String) -> Bool {
+        guard let tools = state.status?.tools else { return true }
+        return tools.first(where: { $0.name == tool })?.available ?? true
+    }
+
     private func labelFor(tool: String) -> String {
         switch tool {
         case "claude-code": return "Claude Code"
@@ -244,7 +318,11 @@ extension ConfigStore.Values {
             minUserMessages: 1,
             namer: "auto",
             dryRun: false,
-            tools: ["claude-code", "codex", "cursor"]
+            tools: ["claude-code", "codex", "cursor"],
+            anthropicKey: "",
+            anthropicModel: "",
+            openaiKey: "",
+            openaiModel: ""
         )
     }
 }

@@ -18,8 +18,25 @@ struct ConfigStore {
         var dryRun: Bool
         var tools: [String]        // "claude-code" | "codex" | "cursor" | "antigravity"
 
+        // Bring-your-own-key namers (the [anthropic] / [openai] tables). An empty
+        // key falls back to the matching env var, then to the offline heuristic.
+        var anthropicKey: String
+        var anthropicModel: String
+        var openaiKey: String
+        var openaiModel: String
+
         static let allNamers = ["auto", "heuristic", "claude", "codex", "anthropic", "openai"]
         static let allTools = ["claude-code", "codex", "cursor", "antigravity"]
+
+        /// Built-in defaults, mirrored from the Python ApiNamer, shown as field
+        /// placeholders so an empty model box clearly means "use the default".
+        static let defaultAnthropicModel = "claude-haiku-4-5"
+        static let defaultOpenAIModel = "gpt-4o-mini"
+
+        /// Whether `namer` is one the user supplies an API key for.
+        static func usesAPIKey(_ namer: String) -> Bool {
+            namer == "anthropic" || namer == "openai"
+        }
     }
 
     /// Default location. Honours XDG_CONFIG_HOME like rename does.
@@ -44,7 +61,11 @@ struct ConfigStore {
             minUserMessages: int(raw, "min_user_messages") ?? 1,
             namer: string(raw, "namer") ?? "auto",
             dryRun: bool(raw, "dry_run") ?? false,
-            tools: array(raw, "tools") ?? ["claude-code", "codex", "cursor"]
+            tools: array(raw, "tools") ?? ["claude-code", "codex", "cursor"],
+            anthropicKey: sectionString(raw, section: "anthropic", key: "api_key") ?? "",
+            anthropicModel: sectionString(raw, section: "anthropic", key: "model") ?? "",
+            openaiKey: sectionString(raw, section: "openai", key: "api_key") ?? "",
+            openaiModel: sectionString(raw, section: "openai", key: "model") ?? ""
         )
     }
 
@@ -58,11 +79,19 @@ struct ConfigStore {
         text = setString(text, key: "namer", value: v.namer)
         text = setBool(text, key: "dry_run", value: v.dryRun)
         text = setArray(text, key: "tools", values: v.tools)
+        text = setSectionString(text, section: "anthropic", key: "api_key", value: v.anthropicKey)
+        text = setSectionString(text, section: "anthropic", key: "model", value: v.anthropicModel)
+        text = setSectionString(text, section: "openai", key: "api_key", value: v.openaiKey)
+        text = setSectionString(text, section: "openai", key: "model", value: v.openaiModel)
         try FileManager.default.createDirectory(
             at: path.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
         try text.write(to: path, atomically: true, encoding: .utf8)
+        // The file may hold an API key — keep it readable only by the user.
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o600], ofItemAtPath: path.path
+        )
     }
 
     // MARK: - Readers -------------------------------------------------------
@@ -99,6 +128,35 @@ struct ConfigStore {
             guard t.hasPrefix("\""), t.hasSuffix("\""), t.count >= 2 else { return nil }
             return String(t.dropFirst().dropLast())
         }
+    }
+
+    /// Reads a string `key = "..."` from inside a `[section]` table, scanning
+    /// only the lines between the `[section]` header and the next `[header]`
+    /// (or end of file). Commented lines (`# api_key = ...`) are ignored.
+    private static func sectionString(_ raw: String, section: String, key: String) -> String? {
+        let lines = raw.components(separatedBy: "\n")
+        guard let header = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces) == "[\(section)]"
+        }) else { return nil }
+        var i = header + 1
+        while i < lines.count {
+            let stripped = lines[i].trimmingCharacters(in: .whitespaces)
+            i += 1
+            if stripped.hasPrefix("[") { break }       // next table — stop
+            if stripped.hasPrefix("#") { continue }     // comment / example
+            guard stripped.hasPrefix(key) else { continue }
+            let rest = stripped.dropFirst(key.count).drop(while: { $0 == " " || $0 == "\t" })
+            guard rest.hasPrefix("=") else { continue }
+            // Value side: a quoted string, tolerating a trailing inline comment
+            // (`api_key = "sk-…"  # note`) by closing at the first `"` after the
+            // opening one rather than trusting the line to end in a quote.
+            let afterEq = rest.dropFirst().drop(while: { $0 == " " || $0 == "\t" })
+            guard afterEq.first == "\"" else { return nil }
+            let body = afterEq.dropFirst()
+            guard let close = body.firstIndex(of: "\"") else { return nil }
+            return String(body[body.startIndex..<close])
+        }
+        return nil
     }
 
     /// Returns the value-side of the first matching `key = <value>` line
@@ -164,6 +222,59 @@ struct ConfigStore {
         }
         let insertAt = sectionStart ?? lines.count
         lines.insert("\(key) = \(newValue)", at: insertAt)
+        return lines.joined(separator: "\n")
+    }
+
+    /// Sets a string `key = "value"` inside a `[section]` table:
+    /// - replaces an existing key in the table in place,
+    /// - inserts it under the header if the table exists but lacks the key,
+    /// - appends a fresh `[section]` at end of file if the table is missing,
+    /// - removes the key (writing nothing new) when `value` is empty, so the
+    ///   namer falls back to its env var / default rather than seeing `key = ""`.
+    private static func setSectionString(
+        _ text: String, section: String, key: String, value: String
+    ) -> String {
+        let isEmpty = value.trimmingCharacters(in: .whitespaces).isEmpty
+        let quoted = "\"\(value.replacingOccurrences(of: "\"", with: "\\\""))\""
+        var lines = text.components(separatedBy: "\n")
+
+        let header = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces) == "[\(section)]"
+        })
+
+        guard let h = header else {
+            guard !isEmpty else { return text }   // no table and nothing to add
+            var out = text
+            if !out.isEmpty && !out.hasSuffix("\n") { out += "\n" }
+            out += "\n[\(section)]\n\(key) = \(quoted)\n"
+            return out
+        }
+
+        // The table body spans (h, next table header or end of file).
+        var end = lines.count
+        var j = h + 1
+        while j < lines.count {
+            if lines[j].trimmingCharacters(in: .whitespaces).hasPrefix("[") { end = j; break }
+            j += 1
+        }
+        // Look for an existing, non-comment `key =` line within the body.
+        var keyLine: Int? = nil
+        var i = h + 1
+        while i < end {
+            let stripped = lines[i].trimmingCharacters(in: .whitespaces)
+            if !stripped.hasPrefix("#"), stripped.hasPrefix(key) {
+                let rest = stripped.dropFirst(key.count).drop(while: { $0 == " " || $0 == "\t" })
+                if rest.hasPrefix("=") { keyLine = i; break }
+            }
+            i += 1
+        }
+
+        if let k = keyLine {
+            if isEmpty { lines.remove(at: k) } else { lines[k] = "\(key) = \(quoted)" }
+            return lines.joined(separator: "\n")
+        }
+        guard !isEmpty else { return text }
+        lines.insert("\(key) = \(quoted)", at: h + 1)
         return lines.joined(separator: "\n")
     }
 }

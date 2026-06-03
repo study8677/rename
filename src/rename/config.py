@@ -52,8 +52,10 @@ tools = ["claude-code", "codex", "cursor", "antigravity"]
 #   "heuristic" - instant, fully offline, no LLM, no token cost
 #   "claude"    - always use the `claude` CLI (defaults to the fast Haiku model)
 #   "codex"     - always use the `codex` CLI
-#   "anthropic" - Anthropic API, needs ANTHROPIC_API_KEY
-#   "openai"    - OpenAI API, needs OPENAI_API_KEY
+#   "anthropic" - Anthropic API directly, with your OWN key (set api_key in the
+#                 [anthropic] table below, or export ANTHROPIC_API_KEY)
+#   "openai"    - OpenAI API directly, with your OWN key (set api_key in the
+#                 [openai] table below, or export OPENAI_API_KEY)
 namer = "auto"
 
 # Ignore sessions whose last activity is older than this many days.
@@ -74,11 +76,16 @@ model = "haiku"
 [codex]
 model = "gpt-5-codex"
 
+# Bring-your-own-key namers. To use one, set `namer` above to "anthropic" or
+# "openai" and provide a key below (or via the matching environment variable).
+# The Rename desktop app can fill these in for you under Settings → Namer.
 [anthropic]
 model = "claude-haiku-4-5"
+# api_key = "sk-ant-..."     # or export ANTHROPIC_API_KEY
 
 [openai]
 model = "gpt-4o-mini"
+# api_key = "sk-..."         # or export OPENAI_API_KEY
 """
 
 

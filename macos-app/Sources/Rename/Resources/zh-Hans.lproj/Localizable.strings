@@ -34,6 +34,11 @@
 "dash_empty_filtered" = "当前过滤条件下没有会话。";
 "dash_empty_scan_now" = "立即扫描";
 "dash_scanning_status" = "扫描中…";
+"dash_search_clear" = "清除搜索";
+"dash_error_title" = "扫描会话失败";
+"dash_error_grant_fda" = "授予完全磁盘访问";
+"dash_error_retry" = "重试";
+"dash_refresh_tooltip" = "重新扫描所有会话存储(⌘R)";
 "dash_refresh" = "刷新";
 "dash_pause_daemon" = "暂停";
 "dash_resume_daemon" = "恢复";
@@ -100,14 +105,20 @@
 "settings_dry_run" = "Dry-run(只预览,不写入任何改动)";
 "settings_dry_run_help" = "假装改名,但不真正修改任何文件。用来测试。";
 "settings_namer" = "Namer";
-"settings_namer_help" = "auto 会复用你本机已经登录的 claude / codex CLI(零 API key)。heuristic 是纯本地启发式,瞬间出结果。anthropic / openai 需要在环境变量里配 API key。";
+"settings_namer_help" = "auto 会复用你本机已经登录的 claude / codex CLI(零 API key)。heuristic 是纯本地启发式,瞬间出结果。anthropic / openai 用你自己的 key 直连官方 API——在下面填 key 即可。";
 "settings_namer_resolved_%@" = "当前实际解析到:%@";
-"settings_tools_help" = "关闭的工具不会被动。本机没有数据的工具,名字旁边会有个 • 小点。";
+"settings_namer_apikey" = "API key";
+"settings_namer_model" = "模型";
+"settings_namer_apikey_missing" = "还没填 key——填上之前会先用本地启发式来命名。";
+"settings_namer_apikey_help" = "明文保存在你的配置文件里。";
+"settings_namer_get_key" = "获取 key ↗";
+"settings_tools_help" = "关闭的工具不会被动。本机没有数据的工具,名字旁边会标注\"未安装\"。";
+"settings_tool_not_installed" = "未安装";
 "settings_save" = "保存";
 "settings_revert" = "撤销改动";
 "settings_saved" = "已保存。下次后台扫描时会用上新值。";
 
 /* 错误 */
-"rename_not_found" = "找不到 rename 命令。请用 pipx install rename 安装,或设置 RENAME_BIN 环境变量。";
+"rename_not_found" = "找不到 rename 命令。请用 pipx install rename-cli 安装,或设置 RENAME_BIN 环境变量。";
 "rename_command_failed_%d_%@" = "rename 退出码 %d: %@";
 "rename_decode_failed_%@" = "无法解析 rename 输出: %@";

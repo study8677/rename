@@ -1,6 +1,6 @@
 import rename.namers.cli_namer as cli_namer
 from rename.config import Config
-from rename.namers import get_namer
+from rename.namers import ApiNamer, get_namer
 
 
 def _which(*available):
@@ -92,3 +92,37 @@ def test_codex_failure_returns_none(monkeypatch):
         lambda argv, **kw: _Proc(returncode=1, stderr="Unsupported model"),
     )
     assert cli_namer.CliNamer("codex", {"model": "bad"}).generate(_MSGS) is None
+
+
+# -- bring-your-own API key (anthropic / openai) ------------------------------ #
+
+
+def test_api_namer_uses_config_key(monkeypatch):
+    """A key in the [anthropic] table is enough — no env var needed."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    cfg = Config(namer="anthropic", raw={"anthropic": {"api_key": "sk-ant-test"}})
+    namer = get_namer(cfg)
+    assert isinstance(namer, ApiNamer)
+    assert namer.name == "anthropic"
+    assert namer.available()
+
+
+def test_api_namer_reads_env_when_no_config_key(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+    namer = get_namer(Config(namer="openai"))
+    assert isinstance(namer, ApiNamer)
+    assert namer.name == "openai"
+    assert namer.available()
+
+
+def test_api_namer_without_key_falls_back_to_heuristic(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert get_namer(Config(namer="anthropic")).name == "heuristic"
+
+
+def test_api_namer_config_model_override(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    cfg = Config(namer="openai", raw={"openai": {"api_key": "sk-x", "model": "gpt-4o"}})
+    namer = get_namer(cfg)
+    assert isinstance(namer, ApiNamer)
+    assert namer.model == "gpt-4o"

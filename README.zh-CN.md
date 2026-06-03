@@ -211,11 +211,17 @@ Antigravity 有两个形态——**IDE 版**(基于 VS Code 的客户端,带 Gem
 | `heuristic` | 把你最近一条消息清洗成标题；即时、离线 | 不要 |
 | `claude` | 始终用 `claude` CLI（默认快速的 Haiku 模型） | 不要——复用登录 |
 | `codex` | 始终用 `codex` CLI（`gpt-5-codex`） | 不要——复用登录 |
-| `anthropic` | 直连 Anthropic API | 需要 `ANTHROPIC_API_KEY` |
-| `openai` | 直连 OpenAI API | 需要 `OPENAI_API_KEY` |
+| `anthropic` | 直连 Anthropic API,用**你自己的 key** | `api_key` 或 `ANTHROPIC_API_KEY` |
+| `openai` | 直连 OpenAI API,用**你自己的 key** | `api_key` 或 `OPENAI_API_KEY` |
 
 开箱即用、零配置、不用粘贴任何 key，你就能得到 LLM 质量的标题（花的是你已有的
 额度）。想要零成本/完全离线？设 `namer = "heuristic"`。
+
+**用自己的 API key。** 想用自己的 Anthropic / OpenAI 账号而不是已登录的 CLI?把
+`namer` 设为 `"anthropic"`(或 `"openai"`),然后在 `config.toml` 对应的小节里填上
+`api_key = "sk-..."`,或导出 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` 环境变量。在桌面
+app 里就是 **设置 → Namer**:选好服务商、把 key 粘进去即可。key 只会写进你本机的
+`config.toml`(权限锁成 `chmod 600`,只有你能读),对话摘录也只发给你选的那家服务商。
 
 ```bash
 rename status        # 会显示 auto 实际解析到了谁，例如 "namer=auto → claude"
@@ -295,9 +301,11 @@ dry_run = false
 
 [anthropic]
 model = "claude-haiku-4-5"
+# api_key = "sk-ant-..."    # 你自己的 key(或设 ANTHROPIC_API_KEY)
 
 [openai]
 model = "gpt-4o-mini"
+# api_key = "sk-..."        # 你自己的 key(或设 OPENAI_API_KEY)
 ```
 
 任何字段都能在单次运行时覆盖：`rename run --idle 600 --namer anthropic --tool cursor`。

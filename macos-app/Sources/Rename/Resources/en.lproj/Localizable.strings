@@ -34,6 +34,11 @@
 "dash_empty_filtered" = "No sessions match this filter.";
 "dash_empty_scan_now" = "Scan now";
 "dash_scanning_status" = "Scanning…";
+"dash_search_clear" = "Clear search";
+"dash_error_title" = "Couldn't scan your sessions";
+"dash_error_grant_fda" = "Grant Full Disk Access";
+"dash_error_retry" = "Try again";
+"dash_refresh_tooltip" = "Rescan all session stores (⌘R)";
 "dash_refresh" = "Refresh";
 "dash_pause_daemon" = "Pause";
 "dash_resume_daemon" = "Resume";
@@ -100,14 +105,20 @@
 "settings_dry_run" = "Dry-run (preview only — don't write changes)";
 "settings_dry_run_help" = "Pretend to rename, but never modify any session file. Useful for testing.";
 "settings_namer" = "Namer";
-"settings_namer_help" = "auto reuses the claude or codex CLI you're already logged into (no API key). heuristic is offline & instant. anthropic/openai need an API key in your environment.";
+"settings_namer_help" = "auto reuses the claude or codex CLI you're already logged into (no API key). heuristic is offline & instant. anthropic / openai call the API directly with your own key — paste it below.";
 "settings_namer_resolved_%@" = "Currently resolves to: %@";
-"settings_tools_help" = "Disabled tools are kept untouched. Adapters that don't find data on your machine show a • dot next to their name.";
+"settings_namer_apikey" = "API key";
+"settings_namer_model" = "Model";
+"settings_namer_apikey_missing" = "No key yet — until you add one, titling falls back to the offline heuristic.";
+"settings_namer_apikey_help" = "Stored in plaintext in your config file.";
+"settings_namer_get_key" = "Get a key ↗";
+"settings_tools_help" = "Disabled tools are kept untouched. Adapters that don't find data on your machine are tagged “Not installed.”";
+"settings_tool_not_installed" = "Not installed";
 "settings_save" = "Save";
 "settings_revert" = "Revert";
 "settings_saved" = "Saved. The daemon picks up the new values on its next pass.";
 
 /* Errors */
-"rename_not_found" = "rename command not found. Install it with: pipx install rename (or set RENAME_BIN).";
+"rename_not_found" = "rename command not found. Install it with: pipx install rename-cli (or set RENAME_BIN).";
 "rename_command_failed_%d_%@" = "rename exited with code %d: %@";
 "rename_decode_failed_%@" = "Could not decode rename output: %@";
