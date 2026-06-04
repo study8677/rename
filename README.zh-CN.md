@@ -374,6 +374,12 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## 社区
+
+本项目在 **[LINUX DO](https://linux.do)** 社区开放交流——欢迎来打个招呼、反馈问题、一起折腾。
+
+[![LINUX DO](https://img.shields.io/badge/LINUX%20DO-Community-FFB003?logo=discourse&logoColor=white)](https://linux.do)
+
 ## 致谢
 
 [@xiongaox](https://github.com/xiongaox) 提出了 [#1](https://github.com/study8677/rename/issues/1)

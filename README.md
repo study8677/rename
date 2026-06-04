@@ -405,6 +405,13 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Community
+
+Built and discussed in the open on **[LINUX DO](https://linux.do)** — a community of
+developers and tinkerers. Come say hi, share feedback, or follow along.
+
+[![LINUX DO](https://img.shields.io/badge/LINUX%20DO-Community-FFB003?logo=discourse&logoColor=white)](https://linux.do)
+
 ## Acknowledgments
 
 [@xiongaox](https://github.com/xiongaox) filed [#1](https://github.com/study8677/rename/issues/1)
