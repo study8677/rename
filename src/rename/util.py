@@ -16,7 +16,9 @@ _LEGACY_APP = "retitle"
 
 
 # --------------------------------------------------------------------------- #
-# Paths (XDG with sensible fallbacks; works on macOS and Linux)
+# Paths (XDG with sensible fallbacks; works on macOS, Linux and Windows —
+# on Windows ~/.config and ~/.local/state resolve under %USERPROFILE%, so the
+# CLI and the PySide6 GUI read and write the very same config.toml / state.json)
 # --------------------------------------------------------------------------- #
 def _base(env: str, default: str) -> Path:
     raw = os.environ.get(env)

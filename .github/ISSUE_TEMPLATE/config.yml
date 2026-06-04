@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: 简体中文文档 (Chinese README)
-    url: https://github.com/study8677/rename/blob/main/README.zh-CN.md
+    url: https://github.com/study8677/rename/blob/main/README.md
     about: 中文使用说明
+  - name: English README
+    url: https://github.com/study8677/rename/blob/main/README.en.md
+    about: English usage guide

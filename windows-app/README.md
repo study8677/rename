@@ -55,14 +55,21 @@ rename-gui
 
 ## Daemon mode on Windows
 
-rename's `install` subcommand wires up launchd on macOS and systemd on Linux,
-but Windows has no equivalent built in. The tray app fills the gap: when you
-hit **Resume** on Windows, it spawns `rename run` as a child process with
-no console window and keeps it alive. **Pause** kills the child. Closing
-the tray app stops the daemon.
+There are two ways to keep the renamer running on Windows — pick whichever you
+prefer (running both just gives you two idle-safe daemons, harmless but wasteful):
 
-For boot-time start, drop a shortcut to `rename-gui` (or
-`pythonw -m rename_gui`) into:
+1. **`rename install`** (recommended, set-and-forget) — registers a login
+   **Startup** shortcut that launches `pythonw -m rename run` with no console
+   window, and starts it immediately. It survives reboots, exactly like launchd
+   on macOS or systemd on Linux. `rename uninstall` removes it and stops it.
+
+2. **The tray app** (interactive control) — hit **Resume** and it spawns
+   `rename run` as a child process with no console window and keeps it alive;
+   **Pause** kills the child; closing the tray app stops it. Good when you want
+   to start/stop by hand without a permanent install.
+
+To also auto-launch the **GUI** itself at login, drop a shortcut to `rename-gui`
+(or `pythonw -m rename_gui`) into:
 
 ```
 %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup

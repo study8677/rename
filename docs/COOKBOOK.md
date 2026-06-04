@@ -145,7 +145,7 @@ and free if you use the `auto` namer that reuses your already-logged-in
 
 ## See also
 
-- [README](../README.md) — install + quick start
+- [README](../README.en.md) — install + quick start (中文见 [README.md](../README.md))
 - [ARCHITECTURE](../ARCHITECTURE.md) — how each adapter works under the hood
 - [CHANGELOG](../CHANGELOG.md) — what's new
 

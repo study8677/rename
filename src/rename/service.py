@@ -1,4 +1,7 @@
-"""Install rename as a background service (launchd on macOS, systemd on Linux)."""
+"""Install rename as a background service.
+
+launchd on macOS, systemd on Linux, a login Startup shortcut on Windows.
+"""
 
 from __future__ import annotations
 
@@ -41,6 +44,8 @@ def install() -> int:
         return _install_launchd()
     if sys.platform.startswith("linux"):
         return _install_systemd()
+    if sys.platform == "win32":
+        return _install_windows()
     util.log(
         f"auto-install unsupported on {sys.platform}; "
         "run `rename run` under your own process manager.",
@@ -54,6 +59,8 @@ def uninstall() -> int:
         return _uninstall_launchd()
     if sys.platform.startswith("linux"):
         return _uninstall_systemd()
+    if sys.platform == "win32":
+        return _uninstall_windows()
     util.log(f"nothing to uninstall on {sys.platform}")
     return 0
 
@@ -151,6 +158,121 @@ def _uninstall_systemd() -> int:
     return 0
 
 
+# -- Windows / Startup shortcut --------------------------------------------- #
+def _startup_dir() -> Path:
+    appdata = os.environ.get("APPDATA")
+    base = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+    return base / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+
+
+def _windows_shortcut() -> Path:
+    return _startup_dir() / "rename.lnk"
+
+
+def _pythonw() -> str:
+    # pythonw.exe runs the daemon with no console window; fall back to python.exe.
+    exe = Path(sys.executable)
+    pyw = exe.with_name("pythonw.exe")
+    return str(pyw if pyw.exists() else exe)
+
+
+def _ps(script: str) -> "subprocess.CompletedProcess[str]":
+    return subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _install_windows() -> int:
+    # Windows has no launchd/systemd, so we register a per-user login Startup
+    # shortcut (the documented, dependency-free equivalent) and start the
+    # daemon immediately — launchd's RunAtLoad / systemd's `--now`.
+    startup = _startup_dir()
+    startup.mkdir(parents=True, exist_ok=True)
+    lnk = _windows_shortcut()
+    pyw = _pythonw()
+    log = util.log_path()
+    log.parent.mkdir(parents=True, exist_ok=True)
+
+    def q(p: object) -> str:  # single-quote-safe for a PowerShell '...' literal
+        return str(p).replace("'", "''")
+
+    script = (
+        "$ws = New-Object -ComObject WScript.Shell; "
+        f"$s = $ws.CreateShortcut('{q(lnk)}'); "
+        f"$s.TargetPath = '{q(pyw)}'; "
+        "$s.Arguments = '-m rename run'; "
+        f"$s.WorkingDirectory = '{q(Path.home())}'; "
+        "$s.WindowStyle = 7; "
+        "$s.Description = 'rename - auto-rename idle AI coding sessions'; "
+        "$s.Save()"
+    )
+    res = _ps(script)
+    if res.returncode != 0:
+        util.log(
+            f"failed to create Startup shortcut: {res.stderr.strip() or res.returncode}",
+            level="warn",
+        )
+        return 1
+
+    # Start it now too, fully detached and with no console window. The child
+    # inherits its own copy of the log handle, so we close ours right after.
+    DETACHED_PROCESS = 0x00000008
+    try:
+        log_fh = open(log, "a", buffering=1)
+        try:
+            subprocess.Popen(
+                [pyw, "-m", "rename", "run"],
+                stdout=log_fh,
+                stderr=log_fh,
+                stdin=subprocess.DEVNULL,
+                creationflags=DETACHED_PROCESS,
+                close_fds=True,
+            )
+        finally:
+            log_fh.close()
+    except OSError as e:
+        util.log(f"shortcut installed but could not start now: {e}", level="warn")
+
+    util.log(f"installed Startup shortcut → {lnk}")
+    util.log("rename will start automatically when you sign in.")
+    util.log(f"logs → {log}")
+    return 0
+
+
+def _running_daemon_count() -> int:
+    res = _ps(
+        "@(Get-CimInstance Win32_Process -Filter "
+        "\"Name='pythonw.exe' or Name='python.exe'\" | "
+        "Where-Object { $_.CommandLine -like '*-m rename run*' }).Count"
+    )
+    try:
+        return int((res.stdout or "0").strip() or "0")
+    except ValueError:
+        return 0
+
+
+def _uninstall_windows() -> int:
+    lnk = _windows_shortcut()
+    removed = False
+    if lnk.exists():
+        try:
+            lnk.unlink()
+            removed = True
+        except OSError as e:
+            util.log(f"could not remove shortcut: {e}", level="warn")
+    # Best-effort: stop a daemon a previous sign-in may have started.
+    _ps(
+        "Get-CimInstance Win32_Process -Filter "
+        "\"Name='pythonw.exe' or Name='python.exe'\" | "
+        "Where-Object { $_.CommandLine -like '*-m rename run*' } | "
+        "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+    )
+    util.log("removed Startup shortcut" if removed else "no Startup shortcut installed")
+    return 0
+
+
 def status_line() -> str:
     if sys.platform == "darwin":
         if not _launch_agent_plist().exists():
@@ -167,4 +289,11 @@ def status_line() -> str:
             text=True,
         )
         return f"daemon: {res.stdout.strip() or 'unknown'} (systemd)"
+    if sys.platform == "win32":
+        if not _windows_shortcut().exists():
+            return "daemon: not installed (Windows Startup)"
+        state = (
+            "running" if _running_daemon_count() > 0 else "installed (starts at sign-in)"
+        )
+        return f"daemon: {state} (Windows Startup)"
     return "daemon: manual (auto-install unsupported on this platform)"

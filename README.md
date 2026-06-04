@@ -2,58 +2,56 @@
 
 # rename
 
-#### Keep your AI coding sessions named after what they actually became.
+#### 让你的 AI 会话标题，始终对得上现在的内容。
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [Cookbook](docs/COOKBOOK.md)
+**简体中文** · [English](README.en.md) · [使用配方](docs/COOKBOOK.md)
 
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/demo.svg" alt="rename rewrites stale Claude Code, Codex and Cursor session titles to match the latest work" width="820">
+  <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/demo.svg" alt="rename 把停在第一句话的 Claude Code / Codex / Cursor 会话标题改成最新内容" width="820">
 </p>
 
 <p align="center">
   <a href="macos-app/">
-    <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/dashboard.svg" alt="A native menu-bar app shows every session across Claude Code, Codex, Cursor and Antigravity" width="820">
+    <img src="https://raw.githubusercontent.com/study8677/rename/main/assets/dashboard.svg" alt="原生菜单栏 / 托盘应用，一处看清 Claude Code、Codex、Cursor、Antigravity 的所有会话" width="820">
   </a>
 </p>
 
 <br>
 
-Claude Code, Codex and Cursor each name a chat from your first message — then freeze it
-forever. An hour later your sidebar still says *Check if branches are synced* while the
-work has long since moved on. Multiply by a few hundred sessions and your history becomes
-unsearchable.
+Claude Code、Codex、Cursor 都只用你的**第一条消息**给会话命名，然后永远冻在那儿。
+一小时后工作早就转向，侧边栏却还写着「检查分支是否同步」。乘以几百个会话,你
+最值钱的历史就变成了搜不动的坟场。
 
-`rename` watches in the background. When a session goes idle, it rewrites the title to
-match what the work actually became. Then `rename search` lets you find it again — across
-every tool at once.
+`rename` 在后台运行。会话一空闲下来,它就把标题改成这次工作真正变成的样子;
+然后用 `rename search` 跨工具找回任何历史会话。
 
 <br>
 
-## Install
+## 安装
 
 ```bash
-brew install study8677/rename/rename     # macOS, via Homebrew tap
+brew install study8677/rename/rename
 pipx install git+https://github.com/study8677/rename.git
 uv tool install git+https://github.com/study8677/rename.git
 ```
 
-No API key required. Zero runtime dependencies. Works on macOS and Linux.
+无需 API key,零运行时依赖。支持 macOS、Linux 和 Windows。
 
 <br>
 
-## Use
+## 使用
 
 ```bash
-rename status                 # what was detected on this machine
-rename list                   # preview new titles (writes nothing)
-rename once                   # one pass, then exit
-rename install                # run forever, in the background
+rename status         # 检测到了什么
+rename list           # 预览新标题(不写入)
+rename once           # 跑一轮然后退出
+rename install        # 永久后台运行
 ```
 
-A pass wakes every minute, looks for sessions idle ≥ 5 minutes, and rewrites the title
-when content has changed since it last looked. Re-runs are free; a clean tree is a no-op.
+后台每分钟醒一次,找空闲 ≥ 5 分钟、内容自上次改名后有变化的会话改名。
+没变化的不会重写,重复运行无副作用。
 
 <br>
 
@@ -61,50 +59,46 @@ when content has changed since it last looked. Re-runs are free; a clean tree is
 
 <br>
 
-## The problem
+## 痛点
 
-Each tool names a chat from your opening prompt and freezes it there. The title becomes
-fiction in minutes.
+| 工具 | 侧边栏还显示 | 这个会话其实早就在做 |
+|------|-------------|----------------------|
+| Cursor | `加一个加载动画` | 把数据库迁移到 Postgres |
+| Codex | `修个 README 里的错别字` | 排查不稳定的 CI 流水线 |
+| Claude Code | `检查分支是否同步` | 实现审计日志功能 |
 
-| Tool | What the sidebar says | What the session is now about |
-|------|----------------------|--------------------------------|
-| Cursor | `Add a loading spinner` | migrating the database to Postgres |
-| Codex | `Fix a typo in the README` | debugging a flaky CI pipeline |
-| Claude Code | `Check if branches are synced` | implementing the audit-log feature |
-
-A week later you know you solved this bug with the AI before. You can't find the
-conversation. The conversation exists. The label hides it.
+标题在十分钟内就成了谎言。一周后你明明记得之前用 AI 解过这个 bug,却翻不到那次对话——
+对话还在,只是被错误的标签盖住了。
 
 <br>
 
-## What it looks like
+## 长这样
 
 ```console
 $ rename list
 
 Claude Code
-     16m  Check if branches are synced          → Implement the audit-log feature
-     34m  —                                     → Fix dashboard white-screen on load
-      2m  Refactor the deploy script            · active
+     16m  检查分支是否同步             → 实现审计日志写入
+     34m  —                          → 修复仪表盘加载白屏
+      2m  重构部署脚本                 · 使用中
 
 Codex
-    1.2h  Set up the new service                → Design the session auto-rename flow
-    2.1h  Review the API changes                · no new content since last rename
+    1.2h  搭建新服务                   → 设计会话自动改名流程
+    2.1h  审查 API 改动                · 距上次改名无新内容
 
 Cursor
-     29m  Add a loading spinner                 → Fix the login-page style regression
-    2.4h  First sync question                   → Track down the duplicate-error bug
+     29m  加一个加载动画               → 修复登录页样式问题
+    2.4h  最初的同步问题               → 定位重复报错的根因
 
-7 session(s) would be renamed next pass (idle ≥ 5m, namer=heuristic).
-Run `rename once` to apply, or `rename install` to do it continuously.
+下一轮将重命名 7 个会话(空闲 ≥ 5m, namer=heuristic)。
+运行 `rename once` 立即应用,或 `rename install` 让它持续运行。
 ```
 
 <br>
 
-## Search
+## 搜索
 
-Accurate titles are half. Finding the session is the other half. `rename search` looks
-across every supported tool at once.
+准确的标题只是一半,另一半是找回。`rename search` 一次跨所有工具搜:
 
 ```console
 $ rename search "stripe webhook"
@@ -112,7 +106,7 @@ $ rename search "stripe webhook"
   Cursor        3h    Wire up the Stripe webhook handler    payments-api
   Claude Code   2d    Debug the Stripe webhook signature    billing-svc
 
-$ rename search postgres --content   # also grep message text, with snippets
+$ rename search postgres --content   # 连消息正文一起搜,带匹配片段
 ```
 
 <br>
@@ -121,163 +115,151 @@ $ rename search postgres --content   # also grep message text, with snippets
 
 <br>
 
-## How it works
+## 工作原理
 
 ```
-        ┌──────────── every  poll_seconds (default 60s) ────────────┐
-        │                                                           │
-   discover ──► for each session idle ≥ 5m with NEW content ──► namer ──► write title back
-   (per tool)         │                                           │            │
-   Claude Code        │ skip if still active                      │            ├─ Claude Code: append an `ai-title` line
-   Codex              │ skip if unchanged since last rename        │            ├─ Codex:       UPDATE threads SET title
-   Cursor             │ skip if a human renamed it (until          │            └─ Cursor:      patch composerHeaders + composerData
-                      │      the conversation moves on)            │
+        ┌──────────── 每隔 poll_seconds（默认 60s） ────────────┐
+        │                                                       │
+   discover ──► 对每个空闲 ≥ 5m 且有新内容的会话 ──► namer ──► 写回标题
+   （按工具）        │                                   │           │
+   Claude Code      │ 仍在使用 → 跳过                    │           ├─ Claude Code：追加一行 `ai-title`
+   Codex            │ 自上次改名无变化 → 跳过            │           ├─ Codex：      UPDATE threads SET title
+   Cursor           │ 被人工改过名 → 跳过（直到          │           └─ Cursor：     更新 composerHeaders + composerData
+                    │     对话出现新内容）              │
 ```
 
-The decision rule for each session is deliberately conservative:
+每个会话的判定规则刻意保守：
 
-1. **Still in use?** Idle for less than your threshold → leave it alone.
-2. **Nothing new?** Content hash matches the title we last wrote → skip (re-runs are free).
-3. **Renamed by hand?** We never clobber a human edit — until you send new messages and it goes idle again.
-4. Otherwise: generate a fresh title and write it.
+1. **还在用?** 空闲时间未达到阈值 → 不动它。
+2. **没新东西?** 内容哈希与上次写入的标题一致 → 跳过（重复运行不花一分钱）。
+3. **手动改过名?** 我们绝不覆盖人工编辑——直到你发了新消息、它再次空闲为止。
+4. 否则：生成一个新标题并写入。
 
-This makes the whole thing **idempotent** and **safe to run continuously**.
+这让整个工具**幂等**且**可以放心地长期运行**。
 
-**Where the title comes from.** By default rename shells out to the `claude`
-(or `codex`) CLI you're already logged into — `claude --model haiku -p "…"` — so
-titles are real LLM summaries of the conversation, with no API key. No CLI
-installed? It falls back to the offline heuristic.
+**标题是怎么来的。** 默认 rename 会调用你已经登录的 `claude`（或 `codex`）命令行
+——`claude --model haiku -p "…"`——所以标题是对话的真实 LLM 总结，且无需 API key。
+没装 CLI？就退回离线启发式。
 
-**Safe by default on existing machines.** When you install rename, the daemon
-records a baseline timestamp and leaves every chat from *before* that moment
-alone. The background loop only renames conversations that become active after
-install — your history is never retroactively touched without consent.
+**装上就用，不会偷偷改你的历史。** 第一次跑的时候 rename 会记一个"基线时间戳"，
+之后后台只会改"基线之后才活跃"的会话——你装 rename 之前的旧聊天不会被自动碰，
+除非你明确同意。
 
-**Rename past sessions on demand.** When you actually want the backlog renamed,
-opt in explicitly. The macOS / Windows dashboard has a **"Rename historical
-sessions"** button with confirm + dry-run, and the CLI mirror is:
+**按需重命名历史会话。** 想把积压的旧会话也跑一遍？dashboard 上有
+**"改名历史会话"** 按钮（带确认对话框 + dry-run），命令行对应是：
 
 ```bash
-rename once                          # latest batch only (default behaviour)
-rename once --historical --dry-run   # preview every pre-install chat
-rename once --historical             # rename the whole backlog (ignores max-age & batch cap)
-rename once --session <id>           # force-rename one specific session
+rename once                          # 只改最近的一批（默认行为）
+rename once --historical --dry-run   # 预览所有"装 rename 之前"的会话
+rename once --historical             # 真把整个历史跑一遍（不受 max-age / batch 限制）
+rename once --session <id>           # 强行只改某一个会话
 ```
 
 ---
 
-## Supported tools
+## 支持的工具
 
-| Tool | Reads | Writes | Status |
-|------|-------|--------|--------|
-| **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | appends an `ai-title` line (append-only — the safest write) | ✅ stable |
-| **Codex** | `~/.codex/state_*.sqlite` + rollout files | `UPDATE threads SET title` | ✅ stable |
-| **Cursor** | `state.vscdb` (`composerHeaders` + `composerData`) | patches both title fields | ⚠️ experimental |
-| **Antigravity** *(Google)* | IDE: `state.vscdb` (`antigravityUnifiedStateSync.trajectorySummaries`) — Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | rewrites the `summary` field of one `CascadeTrajectorySummary` (atomic-rename for the Companion file) | ⚠️ experimental — [see notes](#antigravity-notes) |
-| **Continue** *(continue.dev)* | `~/.continue/sessions/<id>.json` | rewrites `title` and atomic-renames the file | ⚠️ experimental |
-| **Zed** *(zed.dev Assistant)* | `~/Library/Application Support/Zed/conversations/<uuid>.json` (etc.) | rewrites `summary` / `title` and atomic-renames | ⚠️ experimental — schema varies by Zed version |
-| **Windsurf** *(Codeium)* | `state.vscdb` (Cursor-fork layout) | reuses the Cursor write path with the Windsurf store path | ⚠️ experimental |
-| **Aider** | `.aider.chat.history.md` (per project) | sidecar `.aider.chat.history.md.title` file (read-only as far as Aider itself is concerned) | ⚠️ experimental — read-only |
+| 工具 | 读取 | 写入 | 状态 |
+|------|------|------|------|
+| **Claude Code** | `~/.claude/projects/**/<id>.jsonl` | 追加一行 `ai-title`（纯追加——最安全的写法） | ✅ 稳定 |
+| **Codex** | `~/.codex/state_*.sqlite` + rollout 文件 | `UPDATE threads SET title` | ✅ 稳定 |
+| **Cursor** | `state.vscdb`（`composerHeaders` + `composerData`） | 同时更新两处标题字段 | ⚠️ 实验性 |
+| **Antigravity** *(Google)* | IDE: `state.vscdb`（`antigravityUnifiedStateSync.trajectorySummaries`）— Companion: `~/.gemini/antigravity/agyhub_summaries_proto.pb` | 重写对应 `CascadeTrajectorySummary` 的 `summary` 字段（Companion 走原子 rename 重写文件） | ⚠️ 实验性 — [看说明](#antigravity-说明) |
+| **Continue** *(continue.dev)* | `~/.continue/sessions/<id>.json` | 改写 `title` + 原子 rename | ⚠️ 实验性 |
+| **Zed** *(zed.dev Assistant)* | `~/Library/Application Support/Zed/conversations/<uuid>.json` 等 | 改写 `summary` / `title` + 原子 rename | ⚠️ 实验性 — schema 随 Zed 版本变 |
+| **Windsurf** *(Codeium)* | `state.vscdb`(Cursor 分支布局) | 复用 Cursor 的写入路径,只换路径 | ⚠️ 实验性 |
+| **Aider** | `.aider.chat.history.md`(每个项目一份) | 写到 `.aider.chat.history.md.title` 旁路文件(Aider 本身只读) | ⚠️ 实验性 — 只读 |
 
-> **A note on writing while the app is open.** Codex, Cursor and Antigravity keep their data
-> in live SQLite databases. `rename` writes carefully (read-only reads, `busy_timeout` on
-> writes), and only ever touches *idle* sessions. Still, the host apps cache chats in memory,
-> so a title you change on disk may be overwritten if you reopen that exact chat in the
-> running app. For the most reliable results, let `rename` run while the app is closed.
-> Claude Code's append-only format has no such caveat.
+> **关于「应用开着时写入」。** Codex、Cursor 和 Antigravity 都把数据存在正在使用的 SQLite
+> 数据库里。`rename` 写入很谨慎（读取走只读连接、写入设了 `busy_timeout`），而且只碰
+> *空闲*会话。但宿主 App 会把对话缓存在内存里，所以你在磁盘上改的标题，可能在你重新打开
+> 那个对话时被运行中的 App 覆盖。想让结果最可靠，就在 App 关闭时让 `rename` 跑。Claude
+> Code 的纯追加格式没有这个顾虑。
 
-### Antigravity notes
+### Antigravity 说明
 
-Antigravity ships in two forms — the **IDE** (a VS Code fork with a Gemini sidebar)
-and a standalone **Companion App** (Windows-only). `rename` supports both:
+Antigravity 有两个形态——**IDE 版**(基于 VS Code 的客户端,带 Gemini 侧边栏)和
+**Companion App**(独立桌面端,Windows-only)。`rename` 两种都支持:
 
-| Flavor | Title store | Format |
+| 形态 | 标题存储位置 | 格式 |
 |---|---|---|
-| IDE | `state.vscdb` → `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` | base64(envelope(base64(`CascadeTrajectorySummary`))) — same pattern as Cursor |
-| Companion App | `~/.gemini/antigravity/agyhub_summaries_proto.pb` | raw protobuf, `repeated TopEntry { uuid; CascadeTrajectorySummary }` |
+| IDE | `state.vscdb` → `ItemTable['antigravityUnifiedStateSync.trajectorySummaries']` | base64(envelope(base64(`CascadeTrajectorySummary`)))——和 Cursor 一样套两层 base64 |
+| Companion App | `~/.gemini/antigravity/agyhub_summaries_proto.pb` | 裸 protobuf,`repeated TopEntry { uuid; CascadeTrajectorySummary }` |
 
-Both flavors share the same `CascadeTrajectorySummary` schema (reverse-engineered
-from Antigravity 2.0's bundled `FileDescriptorProto`); only the outer wrapping
-differs. The IDE store is rewritten via `UPDATE`; the Companion file is rewritten
-by atomic rename. Conversation transcripts (`~/.gemini/antigravity/conversations/<uuid>.pb`)
-are **encrypted at rest** in either flavor, but Antigravity's agent writes plaintext
-working artifacts to `~/.gemini/antigravity/brain/<uuid>/` (`task.md`,
-`implementation_plan.md`, `walkthrough.md`, plus `*.metadata.json` summaries) — those
-are the material `rename` feeds to the namer.
+两种形态共享同一个 `CascadeTrajectorySummary` schema(从 Antigravity 2.0 的
+`FileDescriptorProto` 反编译来),只是外层封装不同。IDE 走 SQL `UPDATE`,Companion
+走「写临时文件 + 原子 rename」。两种形态的对话正文(`~/.gemini/antigravity/conversations/<uuid>.pb`)
+都是**加密**的,但 Antigravity 的 agent 都会把自己写的明文工作文档放在
+`~/.gemini/antigravity/brain/<uuid>/` 下(`task.md`、`implementation_plan.md`、
+`walkthrough.md`,以及对应的 `*.metadata.json` 摘要)——这些就是 `rename` 喂给 namer
+用来重新起标题的素材。
 
-- ✅ Antigravity sessions show up in `rename list`, `rename search`, `rename stats`
-- ✅ Automatic rename works for any conversation that has produced brain artifacts
-  (longer / planning-heavy chats — the ones whose title most often drifts). Short
-  chats with no artifacts are skipped by the substance gate, which is fine — there'd
-  be nothing to title with anyway.
-- ✅ Manual `rename once --tool antigravity` works regardless.
+- ✅ Antigravity 的对话会出现在 `rename list` / `rename search` / `rename stats` 里
+- ✅ **自动改名**对所有产生过 brain artifact 的对话都生效(也就是那些长一点、有计划文档的
+  会话——标题最容易跑偏的就是这一类)。短对话还没生成 artifact 的会被「实质内容」闸门跳过,
+  这是合理的——没素材也起不了名字。
+- ✅ `rename once --tool antigravity` 手动改名任何时候都能用。
 
-If Antigravity ships an extension API exposing raw chat-session transcripts later,
-we'll wire it in for full coverage. Track at
-[#1](https://github.com/study8677/rename/issues/1).
+如果以后 Antigravity 出了官方扩展 API 直接暴露对话正文,我们再把那一层接上做全覆盖。
+跟进:[#1](https://github.com/study8677/rename/issues/1).
 
 ---
 
-## Naming backends — no API key required
+## 命名后端（namer）—— 无需 API key
 
-The default, **`auto`**, needs **no API key at all**. rename reuses the `claude` or
-`codex` CLI you're *already logged into* to write good, LLM-quality titles, and falls
-back to a fully-offline heuristic if neither is installed. You never paste a key.
+默认的 **`auto`** **完全不需要 API key**：rename 直接复用你**已经登录**的 `claude`
+或 `codex` 命令行来生成高质量标题；两个都没装时，退回完全离线的启发式。你一个字
+的 key 都不用填。
 
-| `namer` | What it does | API key? |
-|---------|--------------|----------|
-| `auto` | your logged-in `claude` / `codex` CLI, else `heuristic` | **none** · default |
-| `heuristic` | a cleaned-up snippet of your latest message; instant, offline | none |
-| `claude` | always the `claude` CLI (fast Haiku model) | none — your login |
-| `codex` | always the `codex` CLI (`gpt-5-codex`) | none — your login |
-| `anthropic` | Anthropic API directly, with **your own key** | `api_key` or `ANTHROPIC_API_KEY` |
-| `openai` | OpenAI API directly, with **your own key** | `api_key` or `OPENAI_API_KEY` |
+| `namer` | 作用 | 要 API key 吗？ |
+|---------|------|----------------|
+| `auto` | 用你已登录的 `claude` / `codex` CLI，否则 `heuristic` | **不要** · 默认 |
+| `heuristic` | 把你最近一条消息清洗成标题；即时、离线 | 不要 |
+| `claude` | 始终用 `claude` CLI（默认快速的 Haiku 模型） | 不要——复用登录 |
+| `codex` | 始终用 `codex` CLI（`gpt-5-codex`） | 不要——复用登录 |
+| `anthropic` | 直连 Anthropic API,用**你自己的 key** | `api_key` 或 `ANTHROPIC_API_KEY` |
+| `openai` | 直连 OpenAI API,用**你自己的 key** | `api_key` 或 `OPENAI_API_KEY` |
 
-Out of the box — nothing to configure, no key to paste — you get LLM-quality titles
-using credits you already have. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
+开箱即用、零配置、不用粘贴任何 key，你就能得到 LLM 质量的标题（花的是你已有的
+额度）。想要零成本/完全离线？设 `namer = "heuristic"`。
 
-**Bring your own key.** Want to use your own Anthropic/OpenAI account instead of a
-logged-in CLI? Set `namer = "anthropic"` (or `"openai"`) and drop your key into the
-matching table in `config.toml` — `api_key = "sk-..."` — or export `ANTHROPIC_API_KEY`
-/ `OPENAI_API_KEY`. In the desktop app it's **Settings → Namer**: pick the provider and
-paste your key. It's written only to your local `config.toml` (locked to your user,
-`chmod 600`) and the transcript excerpt goes nowhere but the provider you chose.
+**用自己的 API key。** 想用自己的 Anthropic / OpenAI 账号而不是已登录的 CLI?把
+`namer` 设为 `"anthropic"`(或 `"openai"`),然后在 `config.toml` 对应的小节里填上
+`api_key = "sk-..."`,或导出 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` 环境变量。在桌面
+app 里就是 **设置 → Namer**:选好服务商、把 key 粘进去即可。key 只会写进你本机的
+`config.toml`(权限锁成 `chmod 600`,只有你能读),对话摘录也只发给你选的那家服务商。
 
 ```bash
-rename status        # shows what auto resolved to, e.g. "namer=auto → claude"
+rename status        # 会显示 auto 实际解析到了谁，例如 "namer=auto → claude"
 ```
 
 ---
 
-## Optional: GUI apps (menu bar + dashboard)
+## 可选:GUI app(菜单栏 + 仪表盘)
 
-`rename` ships two optional GUI front-ends. Both are thin viewers over the
-Python CLI — the daemon you installed with `rename install` keeps doing all
-the real work, the apps just let you see what's happening.
+仓库里带了**两个**可选的 GUI 前端——都只是 Python CLI 的一层 viewer,真正
+做改名的还是你之前 `rename install` 装好的那个 daemon。
 
-| Flavor | Path | Toolchain | Status |
+| 平台 | 目录 | 工具栈 | 状态 |
 |---|---|---|---|
-| **macOS native** | [`macos-app/`](macos-app/) | Swift + SwiftUI, requires Command Line Tools only | ✅ tested |
-| **Windows / cross-platform** | [`windows-app/`](windows-app/) | Python + PySide6 (Qt6), runs on Windows / macOS / Linux | ⚠ shipped untested — see app's README |
+| **macOS 原生** | [`macos-app/`](macos-app/) | Swift + SwiftUI,只需 Command Line Tools | ✅ 已测试 |
+| **Windows / 跨平台** | [`windows-app/`](windows-app/) | Python + PySide6 (Qt6),Windows / macOS / Linux 都能跑 | ⚠ 未测试 — 详见对应 README |
 
-Both apps share the same feature set:
+两个 app 的功能集是**对等的**:
 
-- **Tray / menu bar icon** with running/paused indicator and the last few
-  renames (old title → new title)
-- **Dashboard window** with stat cards (Tracked / Sessions / Stale / Renamed),
-  brand-coloured tool filter chips, search across titles & paths, per-session
-  "Rename now" button (bypasses the idle gate), before/after diff
-- **Visual settings dialog** — sliders, dropdowns and toggles that read & write
-  your `config.toml`, so you don't have to edit TOML by hand
-- **Friendly progress** — no raw `stderr`; everything is surfaced as toast
-  notifications or native system notifications
-- **First-launch permissions onboarding** (macOS) — one click to System Settings →
-  Full Disk Access so the OS stops asking on every refresh
-- **Lazy scanning** — session lists are only fetched when the dashboard is open
-  or you hit Refresh, not on every status poll
-- **Localized** — English and 简体中文, auto-detected from system language
+- **托盘 / 菜单栏图标** — 显示运行 / 暂停状态,展示最近几次改名(旧标题 → 新标题)
+- **仪表盘窗口** — 顶部 stat 卡片(已追踪 / 会话数 / 待处理 / 累计改名);带品牌色的
+  工具过滤(Claude / Codex / Cursor / Antigravity);跨标题 + 路径搜索;每行的
+  "立即改名" 按钮(跳过空闲闸门);改名前后 diff 显示
+- **可视化设置面板** — 滑块、下拉、勾选框,读写你的 `config.toml`,不用手编 TOML
+- **人类化进度** — 没有任何原始 stderr;所有信息都翻译成 toast 或系统通知
+- **首次启动权限引导**(macOS)— 一键跳到系统设置 → 完全磁盘访问,授权一次后
+  系统就不会每次扫描都弹权限框
+- **懒扫描** — 只在仪表盘打开 / 你手动点 Refresh 时才扫描会话,平时只 poll 轻量的
+  status,避免反复触发权限对话框
+- **国际化** — 英文 + 简体中文,跟随系统语言自动切换
 
-### macOS build
+### macOS 构建
 
 ```bash
 cd macos-app
@@ -285,119 +267,112 @@ cd macos-app
 open Rename.app
 ```
 
-Drag `Rename.app` into `~/Applications` and add it to **Login Items** to
-persist across reboots. It's a `LSUIElement` app — menu bar only, no Dock icon.
+把 `Rename.app` 拖到 `~/Applications`,登录项加上,重启后自动启动菜单栏图标。
+这是 `LSUIElement` app——只在菜单栏出现,不上 Dock。
 
-### Windows build
+### Windows 构建
 
 ```powershell
 cd windows-app
-python -m venv .venv && .venv\Scripts\activate
+python -m venv .venv ; .venv\Scripts\activate
 pip install -e .
 rename-gui
 ```
 
-For auto-start, drop a shortcut into `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`.
+开机自启:把 `rename-gui` 的快捷方式扔到
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`。
 
-### Architecture
+### 架构
 
-Both apps talk to the CLI through `subprocess` / `Process` and JSON. The CLI
-exposes `rename status --json`, `list --json`, `stats --json`, `search --json`,
-and `once --session <id>` — the GUI calls these and renders the results. There
-is no extra state, no extra storage, and no extra daemon — the existing Python
-daemon stays the single source of truth.
+两个 app 都通过 `subprocess` / `Process` 调 Python CLI,数据走 JSON。CLI 提供
+`rename status --json` / `list --json` / `stats --json` / `search --json` /
+`once --session <id>` 等命令——GUI 调它们,展示结果。**没有新增任何状态、存储
+或额外 daemon**,Python daemon 仍然是唯一的真理来源。
 
 ---
 
-## Configuration
+## 配置
 
-`rename config` creates and prints `~/.config/rename/config.toml`:
+`rename config` 会创建并打印 `~/.config/rename/config.toml`：
 
 ```toml
-idle_seconds = 300          # rename after 5 minutes idle
-poll_seconds = 60           # scan once a minute
-batch_size = 25             # rename at most N sessions per scan (0 = no limit)
+idle_seconds = 300          # 空闲 5 分钟后改名
+poll_seconds = 60           # 每分钟扫一次
+batch_size = 25             # 每次扫描最多改 N 个（0 = 不限）
 tools = ["claude-code", "codex", "cursor"]
 namer = "heuristic"         # heuristic | claude | codex | anthropic | openai
-max_age_days = 7            # ignore sessions older than a week
-min_user_messages = 1       # need at least this many real messages
+max_age_days = 7            # 忽略超过一周未活动的会话
+min_user_messages = 1       # 至少要有这么多条真实消息
 dry_run = false
 
 [anthropic]
 model = "claude-haiku-4-5"
-# api_key = "sk-ant-..."    # your own key (or set ANTHROPIC_API_KEY)
+# api_key = "sk-ant-..."    # 你自己的 key(或设 ANTHROPIC_API_KEY)
 
 [openai]
 model = "gpt-4o-mini"
-# api_key = "sk-..."        # your own key (or set OPENAI_API_KEY)
+# api_key = "sk-..."        # 你自己的 key(或设 OPENAI_API_KEY)
 ```
 
-Any field can be overridden per-invocation: `rename run --idle 600 --namer anthropic --tool cursor`.
+任何字段都能在单次运行时覆盖：`rename run --idle 600 --namer anthropic --tool cursor`。
 
-## Commands
+## 命令
 
-| Command | Description |
-|---------|-------------|
-| `rename list` | Preview every discovered session and its proposed title (writes nothing) |
-| `rename search <q>` | Find sessions across all tools by title (add `--content` to grep message text) |
-| `rename stats` | A quick overview: sessions per tool, how many are untitled / stale |
-| `rename once` | Rename the latest batch now (`--limit N`, `--all`, `--dry-run`) |
-| `rename run` | Run continuously in the foreground (add `--once`, `--dry-run`) |
-| `rename install` | Install + start the background service (launchd on macOS, systemd on Linux) |
-| `rename uninstall` | Stop and remove the background service |
-| `rename status` | Show config, detected tools, and daemon status |
-| `rename config` | Create / print the config file |
+| 命令 | 说明 |
+|------|------|
+| `rename list` | 预览所有发现的会话及其建议标题（不写入任何东西） |
+| `rename search <关键词>` | 跨所有工具按标题搜索会话（加 `--content` 连正文一起搜） |
+| `rename stats` | 快速概览：各工具会话数、多少未命名 / 已空闲 |
+| `rename once` | 立即改最近一批（`--limit N`、`--all`、`--dry-run`） |
+| `rename run` | 在前台持续运行（可加 `--once`、`--dry-run`） |
+| `rename install` | 安装并启动后台服务（macOS 用 launchd，Linux 用 systemd，Windows 用开机 Startup 快捷方式） |
+| `rename uninstall` | 停止并移除后台服务 |
+| `rename status` | 显示配置、检测到的工具、守护进程状态 |
+| `rename config` | 创建 / 打印配置文件 |
 
-> `rename list`, `rename search` and `rename stats` also accept `--json` for scripting.
+> `rename list`、`rename search`、`rename stats` 都支持 `--json`，方便脚本集成。
 
 ---
 
-## Privacy & safety
+## 隐私与安全
 
-- **No key to paste; titling uses your own logged-in tool.** The default `auto` namer asks the
-  `claude`/`codex` CLI you're already signed into to write the title, so a short transcript
-  excerpt goes to that provider (credits you already have — no API key needed). Want nothing to
-  leave your machine at all? Set `namer = "heuristic"` and it's 100% offline.
-- **No surprise retroactive renames.** First run records a baseline timestamp;
-  pre-existing chats are skipped by the background loop. Renaming your backlog
-  is a deliberate one-click action (or `rename once --historical`), never a
-  side-effect of installing the daemon.
-- **It only ever changes titles.** `rename` reads transcripts and writes a single title field /
-  appends a single line. It never edits, deletes, or reorders your conversations.
-- **It's reversible and idempotent.** A bad title is just a title — send a message and it gets
-  re-evaluated. Re-running does nothing unless content changed.
+- **不用填 key；命名走你自己已登录的工具。** 默认的 `auto` 会让你已登录的 `claude`/`codex`
+  CLI 来写标题，所以一小段对话摘录会发给对应服务商（花的是你已有的额度——无需 API key）。
+  想要任何数据都不离开本机？设 `namer = "heuristic"`，就是 100% 离线。
+- **不会"装上就把你历史聊天全改了"。** 首次运行会记一个基线时间戳，
+  之前的旧会话默认全部跳过。要重命名积压，是你点一下 dashboard 上的按钮
+  （或跑 `rename once --historical`）的主动行为，不是装守护进程的副作用。
+- **它只改标题。** `rename` 读取对话、写入一个标题字段 / 追加一行，
+  从不编辑、删除或重排你的对话内容。
+- **可逆且幂等。** 标题改坏了也只是个标题——发条消息它就会重新评估。
+  内容没变时重复运行什么都不做。
 
-## FAQ
+## 常见问题
 
-**Will it fight with the tool's own auto-naming?**
-No. The tools title once and stop; `rename` only acts after a session is idle, so they aren't
-writing at the same time.
+**会和工具自带的自动命名打架吗?**
+不会。工具只命名一次就停了；`rename` 只在会话空闲后才动手，两者不会同时写。
 
-**Will it overwrite titles I set myself?**
-No — not until you add new messages to that session. Manual titles are respected until the
-conversation actually moves on.
+**会覆盖我自己设的标题吗?**
+不会——除非你给那个会话发了新消息。在对话真正往前走之前，人工标题都会被尊重。
 
-**Do I need an API key?**
-No. The default reuses the `claude` / `codex` CLI you're already logged into — no key to
-paste. It spends credits you already have; for zero cost, set `namer = "heuristic"` (offline).
+**需要填 API key 吗?**
+不需要。默认会复用你已登录的 `claude` / `codex` CLI（不用粘贴任何 key），花的是你
+已有的额度；想零成本就设 `namer = "heuristic"`（完全离线）。
 
-**Is it safe to run all the time?**
-Yes — that's the design. See [How it works](#how-it-works). The one caveat is editing Cursor's DB
-while Cursor is open (above).
+**一直开着安全吗?**
+安全——这就是它的设计目标。见[工作原理](#工作原理)。唯一的注意点是「Cursor 开着时改它的数据库」（见上文）。
 
-**What happens to my existing chats when I first install rename?**
-Nothing automatic. First run records a baseline timestamp; the background daemon
-only renames sessions that become active *after* that. If you want your backlog
-processed too, hit **"Rename historical sessions"** in the dashboard or run
-`rename once --historical --dry-run` to preview, then drop `--dry-run`.
+**装上 rename 之后，我之前那些旧聊天会怎么样?**
+默认什么都不会发生。首次运行会记一个基线时间戳，后台只会改"基线之后才活跃"
+的会话。想把积压的历史也跑一遍？点 dashboard 上的 **"改名历史会话"**，
+或者跑 `rename once --historical --dry-run` 先预览，没问题再去掉 `--dry-run`。
 
-## Contributing
+## 参与贡献
 
-Curious how it works under the hood — including the reverse-engineered session
-storage format of each tool? See **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+好奇它的内部原理——包括逆向出的三个工具的会话存储格式？见 **[ARCHITECTURE.md](ARCHITECTURE.md)**。
 
-Adding support for another tool is one file — implement four methods (`available`, `discover`,
-`read_transcript`, `set_title`) in `src/rename/adapters/`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+新增一个工具的支持只需一个文件——在 `src/rename/adapters/` 里实现四个方法
+（`available`、`discover`、`read_transcript`、`set_title`）。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ```bash
 git clone https://github.com/study8677/rename.git && cd rename
@@ -405,20 +380,18 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## Community
+## 社区
 
-Built and discussed in the open on **[LINUX DO](https://linux.do)** — a community of
-developers and tinkerers. Come say hi, share feedback, or follow along.
+本项目在 **[LINUX DO](https://linux.do)** 社区开放交流——欢迎来打个招呼、反馈问题、一起折腾。
 
 [![LINUX DO](https://img.shields.io/badge/LINUX%20DO-Community-FFB003?logo=discourse&logoColor=white)](https://linux.do)
 
-## Acknowledgments
+## 致谢
 
-[@xiongaox](https://github.com/xiongaox) filed [#1](https://github.com/study8677/rename/issues/1)
-asking for Antigravity support. That issue unlocked the whole Antigravity adapter — the
-protobuf schema reverse-engineering, the `brain/` artifacts discovery, and (after the
-Companion App's `.pb` file was shared) the Companion App store format.
+[@xiongaox](https://github.com/xiongaox) 提出了 [#1](https://github.com/study8677/rename/issues/1)
+要求支持 Antigravity。这个 issue 推动了整套 Antigravity 适配器的实现:反编译 protobuf
+schema、发现 `brain/` 明文素材,以及后来通过他上传的 `.pb` 解锁的 Companion App 路径。
 
-## License
+## 许可证
 
 [MIT](LICENSE) © JingWen Fan
