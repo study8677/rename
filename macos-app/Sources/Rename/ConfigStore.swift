@@ -18,6 +18,11 @@ struct ConfigStore {
         var dryRun: Bool
         var tools: [String]        // "claude-code" | "codex" | "cursor" | "antigravity"
 
+        // CLI namers reuse the user's existing login. Empty model fields fall
+        // back to the Python defaults.
+        var claudeModel: String
+        var codexModel: String
+
         // Bring-your-own-key namers (the [anthropic] / [openai] tables). An empty
         // key falls back to the matching env var, then to the offline heuristic.
         var anthropicKey: String
@@ -28,10 +33,17 @@ struct ConfigStore {
         static let allNamers = ["auto", "heuristic", "claude", "codex", "anthropic", "openai"]
         static let allTools = ["claude-code", "codex", "cursor", "antigravity"]
 
-        /// Built-in defaults, mirrored from the Python ApiNamer, shown as field
+        /// Built-in defaults, mirrored from the Python namers, shown as field
         /// placeholders so an empty model box clearly means "use the default".
+        static let defaultClaudeModel = "haiku"
+        static let defaultCodexModel = "gpt-5.3-codex-spark"
         static let defaultAnthropicModel = "claude-haiku-4-5"
         static let defaultOpenAIModel = "gpt-4o-mini"
+
+        /// Whether `namer` is one of the logged-in CLI namers.
+        static func usesCLINamer(_ namer: String) -> Bool {
+            namer == "claude" || namer == "codex"
+        }
 
         /// Whether `namer` is one the user supplies an API key for.
         static func usesAPIKey(_ namer: String) -> Bool {
@@ -62,6 +74,8 @@ struct ConfigStore {
             namer: string(raw, "namer") ?? "auto",
             dryRun: bool(raw, "dry_run") ?? false,
             tools: array(raw, "tools") ?? ["claude-code", "codex", "cursor"],
+            claudeModel: sectionString(raw, section: "claude", key: "model") ?? "",
+            codexModel: sectionString(raw, section: "codex", key: "model") ?? "",
             anthropicKey: sectionString(raw, section: "anthropic", key: "api_key") ?? "",
             anthropicModel: sectionString(raw, section: "anthropic", key: "model") ?? "",
             openaiKey: sectionString(raw, section: "openai", key: "api_key") ?? "",
@@ -79,6 +93,8 @@ struct ConfigStore {
         text = setString(text, key: "namer", value: v.namer)
         text = setBool(text, key: "dry_run", value: v.dryRun)
         text = setArray(text, key: "tools", values: v.tools)
+        text = setSectionString(text, section: "claude", key: "model", value: v.claudeModel)
+        text = setSectionString(text, section: "codex", key: "model", value: v.codexModel)
         text = setSectionString(text, section: "anthropic", key: "api_key", value: v.anthropicKey)
         text = setSectionString(text, section: "anthropic", key: "model", value: v.anthropicModel)
         text = setSectionString(text, section: "openai", key: "api_key", value: v.openaiKey)

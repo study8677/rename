@@ -74,7 +74,7 @@ dry_run = false
 model = "haiku"
 
 [codex]
-model = "gpt-5-codex"
+model = "gpt-5.3-codex-spark"
 
 # Bring-your-own-key namers. To use one, set `namer` above to "anthropic" or
 # "openai" and provide a key below (or via the matching environment variable).

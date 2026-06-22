@@ -18,7 +18,7 @@ from .base import INSTRUCTION, Namer, build_excerpt
 _TIMEOUT = 90  # codex with reasoning can take a while; keep generous
 
 # The fast Codex model used for titling unless the user overrides it.
-_CODEX_DEFAULT_MODEL = "gpt-5-codex"
+_CODEX_DEFAULT_MODEL = "gpt-5.3-codex-spark"
 # Claude's small/fast model — plenty for a 6-word title, and cheap.
 _CLAUDE_DEFAULT_MODEL = "haiku"
 

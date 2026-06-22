@@ -78,7 +78,9 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             }
-                            if ConfigStore.Values.usesAPIKey(values.namer) {
+                            if ConfigStore.Values.usesCLINamer(values.namer) {
+                                cliModelFields
+                            } else if ConfigStore.Values.usesAPIKey(values.namer) {
                                 apiKeyFields
                             }
                         }
@@ -182,6 +184,26 @@ struct SettingsView: View {
 
     // MARK: - building blocks ----------------------------------------------
 
+    /// Model input for the logged-in `claude` / `codex` CLI namers.
+    @ViewBuilder
+    private var cliModelFields: some View {
+        let isCodex = values.namer == "codex"
+        VStack(alignment: .leading, spacing: 8) {
+            Divider().padding(.vertical, 2)
+            HStack(spacing: 8) {
+                Text(LocalizedStringKey("settings_namer_model"))
+                    .frame(width: 64, alignment: .leading)
+                TextField(
+                    isCodex
+                        ? ConfigStore.Values.defaultCodexModel
+                        : ConfigStore.Values.defaultClaudeModel,
+                    text: cliModelBinding
+                )
+                .textFieldStyle(.roundedBorder)
+            }
+        }
+    }
+
     /// API key + model inputs for the `anthropic` / `openai` namers. The fields
     /// edit whichever provider is currently selected, and write straight into
     /// the `[anthropic]` / `[openai]` tables of the config file on Save.
@@ -227,6 +249,10 @@ struct SettingsView: View {
                 .font(.caption)
             }
         }
+    }
+
+    private var cliModelBinding: Binding<String> {
+        values.namer == "codex" ? $values.codexModel : $values.claudeModel
     }
 
     private var apiKeyBinding: Binding<String> {
@@ -319,6 +345,8 @@ extension ConfigStore.Values {
             namer: "auto",
             dryRun: false,
             tools: ["claude-code", "codex", "cursor"],
+            claudeModel: "",
+            codexModel: "",
             anthropicKey: "",
             anthropicModel: "",
             openaiKey: "",

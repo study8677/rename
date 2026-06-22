@@ -83,7 +83,24 @@ def test_codex_uses_output_last_message_and_default_model(monkeypatch):
     title = cli_namer.CliNamer("codex", {}).generate(_MSGS)
     assert title == "CSV Export and Pagination Fix"  # NOT "tokens used: 2347"
     assert "--output-last-message" in seen["argv"]
-    assert "-m" in seen["argv"] and "gpt-5-codex" in seen["argv"]
+    assert "-m" in seen["argv"] and "gpt-5.3-codex-spark" in seen["argv"]
+
+
+def test_codex_respects_model_override(monkeypatch):
+    seen = {}
+
+    def fake_run(argv, **kw):
+        seen["argv"] = argv
+        out_path = argv[argv.index("--output-last-message") + 1]
+        with open(out_path, "w", encoding="utf-8") as fh:
+            fh.write("Custom model title\n")
+        return _Proc()
+
+    monkeypatch.setattr(cli_namer.subprocess, "run", fake_run)
+    title = cli_namer.CliNamer("codex", {"model": "custom-codex"}).generate(_MSGS)
+    assert title == "Custom model title"
+    assert "custom-codex" in seen["argv"]
+    assert "gpt-5.3-codex-spark" not in seen["argv"]
 
 
 def test_codex_failure_returns_none(monkeypatch):

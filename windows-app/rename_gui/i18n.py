@@ -151,6 +151,8 @@ _STRINGS = {
         "zh-Hans": "Dry-run(只预览,不写入)",
     },
     "settings_namer": {"en": "Namer", "zh-Hans": "Namer"},
+    "settings_claude_model": {"en": "Claude model", "zh-Hans": "Claude 模型"},
+    "settings_codex_model": {"en": "Codex model", "zh-Hans": "Codex 模型"},
     "settings_save": {"en": "Save", "zh-Hans": "保存"},
     "settings_revert": {"en": "Revert", "zh-Hans": "撤销改动"},
     "settings_saved": {

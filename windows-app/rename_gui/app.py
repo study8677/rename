@@ -9,14 +9,12 @@ for users who can't or don't want to build the native Swift app).
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import (
     QObject,
     QPoint,
-    QRect,
     QSize,
     Qt,
     QThread,
@@ -29,7 +27,6 @@ from PySide6.QtGui import (
     QGuiApplication,
     QIcon,
     QPainter,
-    QPalette,
     QPixmap,
 )
 from PySide6.QtWidgets import (
@@ -47,10 +44,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QProgressBar,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QSpinBox,
     QSystemTrayIcon,
     QToolButton,
@@ -562,6 +557,12 @@ class SettingsDialog(QDialog):
         self.namer.addItems(config_store.ALL_NAMERS)
         self.namer.setCurrentText(self.values.namer)
         form3.addRow(t("settings_namer"), self.namer)
+        self.claude_model = QLineEdit(self.values.claude_model)
+        self.claude_model.setPlaceholderText(config_store.DEFAULT_CLAUDE_MODEL)
+        form3.addRow(t("settings_claude_model"), self.claude_model)
+        self.codex_model = QLineEdit(self.values.codex_model)
+        self.codex_model.setPlaceholderText(config_store.DEFAULT_CODEX_MODEL)
+        form3.addRow(t("settings_codex_model"), self.codex_model)
         layout.addWidget(gb3)
 
         # Tools section
@@ -602,6 +603,8 @@ class SettingsDialog(QDialog):
             namer=self.namer.currentText(),
             dry_run=self.dry.isChecked(),
             tools=[name for name, cb in self.tool_boxes.items() if cb.isChecked()],
+            claude_model=self.claude_model.text().strip(),
+            codex_model=self.codex_model.text().strip(),
         )
         try:
             config_store.save(v)
