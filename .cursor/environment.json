@@ -1,0 +1,4 @@
+{
+  "name": "rename",
+  "install": "pip install -e \".[dev]\""
+}
