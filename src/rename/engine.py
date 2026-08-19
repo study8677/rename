@@ -5,9 +5,11 @@ Per-session decision (see `_assess`, which never calls the namer):
   1. Idle gate — skip if used within `idle_seconds` (still in use).
   2. No-activity short-circuit — skip if `last_active` is unchanged since we last
      evaluated it (cheap: no transcript read needed).
-  3. Substance — skip if too few real user messages.
-  4. Unchanged — skip if the content hash matches the title we last wrote.
-  5. Otherwise it's a *candidate*: ask the namer for a title and write it back
+  3. Namer-artifact — skip sessions whose title or user text is the naming
+     prompt itself (a CLI namer / auto-titler side-effect, not real work).
+  4. Substance — skip if too few real user messages.
+  5. Unchanged — skip if the content hash matches the title we last wrote.
+  6. Otherwise it's a *candidate*: ask the namer for a title and write it back
      if it differs.
 
 Assessment (fast, local) is deliberately separated from naming (slow — it shells
@@ -52,7 +54,7 @@ class Engine:
         include_historical: bool = False,
     ):
         """Return (status, sig, msgs) without naming. status is one of
-        historical | active | no-activity | thin | unchanged | candidate.
+        historical | active | no-activity | namer-artifact | thin | unchanged | candidate.
 
         ``historical`` means the session existed before the daemon's first
         run on this machine — we leave those alone so rename never
@@ -69,7 +71,11 @@ class Engine:
         prev = self.state.get(adapter.name, s.id)
         if prev and prev.get("seen_active") == s.last_active:
             return ("no-activity", None, None)
+        if util.is_namer_artifact(s.title):
+            return ("namer-artifact", None, None)
         msgs = adapter.read_transcript(s)
+        if any(m.role == "user" and util.is_namer_artifact(m.text) for m in msgs):
+            return ("namer-artifact", None, msgs)
         substantive = [
             m for m in msgs if m.role == "user" and not util.is_trivial(m.text)
         ]
@@ -88,7 +94,7 @@ class Engine:
 
     def _record_skip(self, adapter, s, status, sig, now_ts) -> None:
         fields: dict = {"last_seen": now_ts}
-        if status in ("thin", "unchanged"):
+        if status in ("thin", "unchanged", "namer-artifact"):
             fields["seen_active"] = s.last_active
         if status == "unchanged" and sig:
             fields["content_sig"] = sig
@@ -117,6 +123,10 @@ class Engine:
             )
         if status == "no-activity":
             return RenamePlan(s, "skip", reason="no activity since last check")
+        if status == "namer-artifact":
+            return RenamePlan(
+                s, "skip", mark_seen=True, reason="namer/CLI side-effect session"
+            )
         if status == "thin":
             return RenamePlan(
                 s, "skip", mark_seen=True, reason="no substantive user messages"

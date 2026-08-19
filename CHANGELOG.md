@@ -5,6 +5,28 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Fixed
+- **CLI namers no longer flood Claude Code / Codex with junk sessions.** The
+  default `auto` / `claude` / `codex` namer shells out to `claude -p` or
+  `codex exec` to write a title. Those CLIs were persisting the call as a
+  *real* session whose title is the naming prompt itself — `You name
+  coding-assistant sessions…`, or Claude Code's own `Generate a concise tab
+  title for this coding chat…`. After the idle window, rename treated those as
+  new work and called the namer again, so the session list grew with every
+  pass (and with every project you ran from).
+  - `claude`: `--bare --no-session-persistence` plus
+    `CLAUDE_CODE_SKIP_PROMPT_HISTORY=1` (the flag is a no-op on some Claude
+    Code versions; the env var still suppresses transcripts)
+  - `codex`: `--ephemeral --skip-git-repo-check`
+  - both run in an isolated scratch directory, not the user's project
+  - sessions whose title or user text looks like a namer / auto-title prompt
+    are skipped, so leftover junk cannot retrigger the loop
+  - older CLIs that reject the new flags are retried without them
+
+The Codex namer still defaults to **`gpt-5.3-codex-spark`**. Default
+`namer = "auto"` still prefers the `claude` CLI (Haiku) when installed, then
+Codex Spark.
+
 ## [1.0.0] - 2026-06-02
 
 ### Changed — breaking

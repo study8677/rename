@@ -12,6 +12,20 @@ def test_is_noise_catches_harness_artifacts():
     assert not util.is_noise("修复登录页面的样式问题")
 
 
+def test_is_namer_artifact():
+    assert util.is_namer_artifact(
+        "You name coding-assistant sessions. Read the conversation and reply with a "
+        "concise title of 3 to 6 w..."
+    )
+    assert util.is_namer_artifact(
+        "Generate a concise tab title for this coding chat. Rules: - 2 to 5 words. "
+        "- Title Case. - Describe t..."
+    )
+    assert not util.is_namer_artifact("Add CSV export to the reports page")
+    assert not util.is_namer_artifact(None)
+    assert not util.is_namer_artifact("")
+
+
 def test_is_trivial():
     assert util.is_trivial("ok")
     assert util.is_trivial("好的")

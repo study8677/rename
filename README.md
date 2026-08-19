@@ -139,7 +139,7 @@ $ rename search postgres --content   # 连消息正文一起搜,带匹配片段
 
 **标题是怎么来的。** 默认 rename 会调用你已经登录的 `claude`（或 `codex`）命令行
 ——`claude --model haiku -p "…"`——所以标题是对话的真实 LLM 总结，且无需 API key。
-没装 CLI？就退回离线启发式。
+这次调用是一次性的，不会在会话列表里再留下一条「起名会话」。没装 CLI？就退回离线启发式。
 
 **装上就用，不会偷偷改你的历史。** 第一次跑的时候 rename 会记一个"基线时间戳"，
 之后后台只会改"基线之后才活跃"的会话——你装 rename 之前的旧聊天不会被自动碰，
@@ -221,7 +221,9 @@ Antigravity 有两个形态——**IDE 版**(基于 VS Code 的客户端,带 Gem
 | `openai` | 直连 OpenAI API,用**你自己的 key** | `api_key` 或 `OPENAI_API_KEY` |
 
 开箱即用、零配置、不用粘贴任何 key，你就能得到 LLM 质量的标题（花的是你已有的
-额度）。想要零成本/完全离线？设 `namer = "heuristic"`。
+额度）。`auto` **优先用已登录的 `claude`（Haiku）**，没有 `claude` 才用 `codex`
+（默认模型 id：**`gpt-5.3-codex-spark`**）。CLI 起名是一次性调用，不会在 Claude Code /
+Codex 会话列表里再留一条「起名会话」。想要零成本/完全离线？设 `namer = "heuristic"`。
 想固定使用 Codex？设 `namer = "codex"`；模型可在 `[codex] model = "..."` 里改。
 
 **用自己的 API key。** 想用自己的 Anthropic / OpenAI 账号而不是已登录的 CLI?把

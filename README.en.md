@@ -145,7 +145,8 @@ This makes the whole thing **idempotent** and **safe to run continuously**.
 
 **Where the title comes from.** By default rename shells out to the `claude`
 (or `codex`) CLI you're already logged into — `claude --model haiku -p "…"` — so
-titles are real LLM summaries of the conversation, with no API key. No CLI
+titles are real LLM summaries of the conversation, with no API key. The call is
+ephemeral and does not leave an extra session in your chat list. No CLI
 installed? It falls back to the offline heuristic.
 
 **Safe by default on existing machines.** When you install rename, the daemon
@@ -234,7 +235,10 @@ back to a fully-offline heuristic if neither is installed. You never paste a key
 | `openai` | OpenAI API directly, with **your own key** | `api_key` or `OPENAI_API_KEY` |
 
 Out of the box — nothing to configure, no key to paste — you get LLM-quality titles
-using credits you already have. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
+using credits you already have. `auto` **prefers the logged-in `claude` CLI (Haiku)**
+and only uses `codex` (default model id **`gpt-5.3-codex-spark`**) if `claude` is not
+installed. CLI naming calls are ephemeral and must not show up as extra sessions in
+Claude Code / Codex. Prefer zero cost / fully offline? Set `namer = "heuristic"`.
 Want to force Codex? Set `namer = "codex"` and change `[codex] model = "..."`.
 
 **Bring your own key.** Want to use your own Anthropic/OpenAI account instead of a

@@ -66,6 +66,60 @@ def test_renames_idle_changed_session(tmp_path):
     assert adapter.writes == [("s1", "Billing export")]
 
 
+def test_skips_namer_prompt_title_without_calling_namer(tmp_path):
+    """CLI namer side-effect sessions must not be fed back into the namer."""
+    s = _idle_session(
+        title="You name coding-assistant sessions. Read the conversation and reply"
+    )
+    adapter = FakeAdapter(
+        [s],
+        {"s1": [Message("user", "You name coding-assistant sessions. Read the conversation")]},
+    )
+    namer = FakeNamer("Should not run")
+    calls = {"n": 0}
+    orig = namer.generate
+
+    def wrapped(*a, **k):
+        calls["n"] += 1
+        return orig(*a, **k)
+
+    namer.generate = wrapped
+    eng = _engine(tmp_path, adapter, namer)
+    renamed, _ = eng.tick()
+    assert renamed == 0
+    assert adapter.writes == []
+    assert calls["n"] == 0
+
+
+def test_skips_claude_tab_title_artifact_by_transcript(tmp_path):
+    s = _idle_session(title="Untitled")
+    adapter = FakeAdapter(
+        [s],
+        {
+            "s1": [
+                Message(
+                    "user",
+                    "Generate a concise tab title for this coding chat. Rules: - 2 to 5 words.",
+                )
+            ]
+        },
+    )
+    namer = FakeNamer("Should not run")
+    calls = {"n": 0}
+    orig = namer.generate
+
+    def wrapped(*a, **k):
+        calls["n"] += 1
+        return orig(*a, **k)
+
+    namer.generate = wrapped
+    eng = _engine(tmp_path, adapter, namer)
+    renamed, _ = eng.tick()
+    assert renamed == 0
+    assert adapter.writes == []
+    assert calls["n"] == 0
+
+
 def test_skips_active_session(tmp_path):
     s = Session("fake", "s1", "Old", last_active=time.time())  # just now
     adapter = FakeAdapter([s], TRANSCRIPT)

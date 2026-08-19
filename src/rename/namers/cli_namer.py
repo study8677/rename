@@ -3,6 +3,11 @@
 Reuses whatever login the user already has for that tool — no API key wiring,
 no extra cost beyond the tool's own usage. This is the default (via ``auto``),
 which prefers ``claude`` then ``codex``.
+
+Calls are ephemeral: they must not land in the user's Claude Code / Codex
+session list. A persisted namer call shows up as a real session titled with
+the naming prompt itself, and rename would then try to rename *that* session
+by calling the CLI again — a loop.
 """
 
 from __future__ import annotations
@@ -17,10 +22,75 @@ from .base import INSTRUCTION, Namer, build_excerpt
 
 _TIMEOUT = 90  # codex with reasoning can take a while; keep generous
 
-# The fast Codex model used for titling unless the user overrides it.
+# Official Codex CLI model id (OpenAI, Feb 2026). Fast enough for a 6-word title.
 _CODEX_DEFAULT_MODEL = "gpt-5.3-codex-spark"
 # Claude's small/fast model — plenty for a 6-word title, and cheap.
 _CLAUDE_DEFAULT_MODEL = "haiku"
+
+# Flags that stop the namer call from showing up as a real coding session.
+# Some CLI versions don't know them; we retry without them if rejected.
+_CLAUDE_EPHEMERAL_FLAGS = ("--bare", "--no-session-persistence")
+_CODEX_EPHEMERAL_FLAGS = ("--ephemeral", "--skip-git-repo-check")
+
+
+def _scratch_cwd() -> str:
+    """Isolated cwd so a leaking CLI cannot dump sessions into a user project."""
+    path = util.state_dir() / "namer-scratch"
+    path.mkdir(parents=True, exist_ok=True)
+    return str(path)
+
+
+def _unknown_flag(stderr: str) -> bool:
+    low = (stderr or "").lower()
+    return any(
+        needle in low
+        for needle in (
+            "unknown option",
+            "unknown argument",
+            "unexpected argument",
+            "unrecognized",
+            "invalid option",
+            "unexpected option",
+        )
+    )
+
+
+def _run(
+    argv: list[str],
+    *,
+    env: dict[str, str] | None = None,
+    cwd: str | None = None,
+):
+    merged = os.environ.copy()
+    if env:
+        merged.update(env)
+    try:
+        return subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=_TIMEOUT,
+            env=merged,
+            cwd=cwd,
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        util.log(f"{argv[0]} namer call failed: {exc}", level="debug")
+        return None
+
+
+def _run_ephemeral(
+    required: list[str],
+    optional: tuple[str, ...],
+    trailing: list[str],
+    *,
+    env: dict[str, str] | None = None,
+    cwd: str | None = None,
+):
+    """Run with persistence-killing flags; retry without them on older CLIs."""
+    proc = _run(required + list(optional) + trailing, env=env, cwd=cwd)
+    if proc is not None and proc.returncode != 0 and _unknown_flag(proc.stderr):
+        proc = _run(required + trailing, env=env, cwd=cwd)
+    return proc
 
 
 class CliNamer(Namer):
@@ -43,13 +113,15 @@ class CliNamer(Namer):
         model = self.options.get("model", _CLAUDE_DEFAULT_MODEL)
         if model:
             argv += ["--model", str(model)]
-        argv += ["-p", prompt]
-        try:
-            proc = subprocess.run(
-                argv, capture_output=True, text=True, timeout=_TIMEOUT
-            )
-        except (subprocess.TimeoutExpired, OSError) as exc:
-            util.log(f"claude namer call failed: {exc}", level="debug")
+        env = {"CLAUDE_CODE_SKIP_PROMPT_HISTORY": "1"}
+        proc = _run_ephemeral(
+            argv,
+            _CLAUDE_EPHEMERAL_FLAGS,
+            ["-p", prompt],
+            env=env,
+            cwd=_scratch_cwd(),
+        )
+        if proc is None:
             return None
         if proc.returncode != 0:
             util.log(
@@ -72,13 +144,13 @@ class CliNamer(Namer):
             model = self.options.get("model", _CODEX_DEFAULT_MODEL)
             if model:
                 argv += ["-m", str(model)]
-            argv += ["--output-last-message", out_path, prompt]
-            try:
-                proc = subprocess.run(
-                    argv, capture_output=True, text=True, timeout=_TIMEOUT
-                )
-            except (subprocess.TimeoutExpired, OSError) as exc:
-                util.log(f"codex namer call failed: {exc}", level="debug")
+            proc = _run_ephemeral(
+                argv,
+                _CODEX_EPHEMERAL_FLAGS,
+                ["--output-last-message", out_path, prompt],
+                cwd=_scratch_cwd(),
+            )
+            if proc is None:
                 return None
             if proc.returncode != 0:
                 util.log(

@@ -51,7 +51,7 @@ tools = ["claude-code", "codex", "cursor", "antigravity"]
 #                 neither is installed. (default)
 #   "heuristic" - instant, fully offline, no LLM, no token cost
 #   "claude"    - always use the `claude` CLI (defaults to the fast Haiku model)
-#   "codex"     - always use the `codex` CLI
+#   "codex"     - always use the `codex` CLI (defaults to gpt-5.3-codex-spark)
 #   "anthropic" - Anthropic API directly, with your OWN key (set api_key in the
 #                 [anthropic] table below, or export ANTHROPIC_API_KEY)
 #   "openai"    - OpenAI API directly, with your OWN key (set api_key in the
@@ -69,7 +69,7 @@ dry_run = false
 
 # Model overrides for the CLI namers (optional). These reuse your existing
 # login — no API key. Defaults are the fast/cheap models, which are plenty for
-# a short title.
+# a short title. CLI namers run ephemerally (no extra Claude/Codex session).
 [claude]
 model = "haiku"
 

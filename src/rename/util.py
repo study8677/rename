@@ -146,6 +146,22 @@ _NOISE_RE = re.compile(
 )
 _JSONISH = re.compile(r'^[\[{]\s*["{\[]')
 
+# Side-effect sessions created by a CLI namer (or Claude Code's own tab-titler).
+# Matching is case-insensitive and works on truncated titles in the session list.
+_NAMER_ARTIFACT_MARKERS = (
+    "you name coding-assistant sessions",
+    "generate a concise tab title for this coding chat",
+    "concise title of 3 to 6 words capturing what the user",
+)
+
+
+def is_namer_artifact(text: str | None) -> bool:
+    """True for a title or user message that is a session-naming prompt, not work."""
+    if not text:
+        return False
+    low = text.casefold()
+    return any(marker in low for marker in _NAMER_ARTIFACT_MARKERS)
+
 
 def is_noise(text: str) -> bool:
     """True for harness/tool artifacts that are not genuine conversation."""

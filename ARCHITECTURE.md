@@ -152,14 +152,18 @@ For each discovered session, in order:
 3. **No-activity short-circuit** — if `last_active` is unchanged since we last
    fully evaluated it (`seen_active` in state), skip without re-reading the
    transcript. Cheap; keeps the poll loop light.
-4. **Substance** — skip if there are fewer than `min_user_messages` non-trivial
+4. **Namer-artifact** — skip if the current title or a user message is the
+   naming prompt itself (`util.is_namer_artifact`). CLI namer calls and Claude
+   Code's built-in tab-titler can leak into the session list; feeding them back
+   into the namer creates more junk sessions.
+5. **Substance** — skip if there are fewer than `min_user_messages` non-trivial
    user messages (acknowledgements, slash-commands and harness/tool noise are
    filtered out in `util.is_trivial` / `is_noise`).
-5. **Unchanged content** — hash the recent transcript (`util.signature`); if it
+6. **Unchanged content** — hash the recent transcript (`util.signature`); if it
    matches the hash tied to the title we last wrote, skip. This makes runs
    idempotent and **respects titles you edit by hand** — until the conversation
    moves on.
-6. Otherwise generate a title, shape it (`util.shape_title`), and write it if it
+7. Otherwise generate a title, shape it (`util.shape_title`), and write it if it
    differs from the current one.
 
 ### Baseline timestamp (v0.6.0+)
@@ -206,7 +210,8 @@ baseline they didn't want to commit to.
   next pass to clobber a hand-edited title.
 - **Titling via your own logged-in CLI by default.** The default `auto` namer
   reuses the `claude`/`codex` CLI you're signed into (no API key); a short excerpt
-  goes to that provider. Set `namer = "heuristic"` for a fully offline run. See
+  goes to that provider. Those CLI calls are ephemeral (no extra session in your
+  Claude Code / Codex list). Set `namer = "heuristic"` for a fully offline run. See
   [SECURITY.md](SECURITY.md).
 
 ## Adding a tool

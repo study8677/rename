@@ -11,7 +11,9 @@ privacy are a first-class concern.
 - **Titling uses your own logged-in CLI by default.** The default `auto` namer
   asks the `claude` / `codex` tool you're already signed into to write the title,
   so a short transcript excerpt is sent through that provider — there is no API
-  key to paste. The `anthropic` / `openai` namers do the same via a key you set.
+  key to paste. Those calls are ephemeral and must not create extra sessions in
+  your Claude Code / Codex history. The `anthropic` / `openai` namers do the same
+  via a key you set.
 - **Fully offline option.** Set `namer = "heuristic"` and nothing ever leaves
   your machine.
 - **Conservative writes.** Reads use read-only SQLite connections; writes use a

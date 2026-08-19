@@ -45,6 +45,8 @@ def test_claude_uses_fast_model_and_clean_output(monkeypatch):
 
     def fake_run(argv, **kw):
         seen["argv"] = argv
+        seen["env"] = kw.get("env")
+        seen["cwd"] = kw.get("cwd")
         # claude -p prints just the answer text
         return _Proc(stdout="Add CSV export and fix pagination\n")
 
@@ -53,6 +55,28 @@ def test_claude_uses_fast_model_and_clean_output(monkeypatch):
     assert title == "Add CSV export and fix pagination"
     assert seen["argv"][0] == "claude"
     assert "--model" in seen["argv"] and "haiku" in seen["argv"]
+    assert "--no-session-persistence" in seen["argv"]
+    assert "--bare" in seen["argv"]
+    assert seen["env"]["CLAUDE_CODE_SKIP_PROMPT_HISTORY"] == "1"
+    assert seen["cwd"] and seen["cwd"].endswith("namer-scratch")
+
+
+def test_claude_retries_without_ephemeral_flags_on_unknown_option(monkeypatch):
+    calls = []
+
+    def fake_run(argv, **kw):
+        calls.append(argv)
+        if "--no-session-persistence" in argv or "--bare" in argv:
+            return _Proc(returncode=1, stderr="error: unknown option '--no-session-persistence'")
+        return _Proc(stdout="Billing export\n")
+
+    monkeypatch.setattr(cli_namer.subprocess, "run", fake_run)
+    title = cli_namer.CliNamer("claude", {}).generate(_MSGS)
+    assert title == "Billing export"
+    assert len(calls) == 2
+    assert "--no-session-persistence" not in calls[1]
+    assert "--bare" not in calls[1]
+    assert "-p" in calls[1]
 
 
 def test_claude_respects_model_override(monkeypatch):
@@ -72,6 +96,7 @@ def test_codex_uses_output_last_message_and_default_model(monkeypatch):
 
     def fake_run(argv, **kw):
         seen["argv"] = argv
+        seen["cwd"] = kw.get("cwd")
         # codex streams a noisy transcript to stdout (must be ignored)…
         out_path = argv[argv.index("--output-last-message") + 1]
         # …and writes ONLY the final message to the file:
@@ -84,6 +109,29 @@ def test_codex_uses_output_last_message_and_default_model(monkeypatch):
     assert title == "CSV Export and Pagination Fix"  # NOT "tokens used: 2347"
     assert "--output-last-message" in seen["argv"]
     assert "-m" in seen["argv"] and "gpt-5.3-codex-spark" in seen["argv"]
+    assert "--ephemeral" in seen["argv"]
+    assert "--skip-git-repo-check" in seen["argv"]
+    assert seen["cwd"] and seen["cwd"].endswith("namer-scratch")
+
+
+def test_codex_retries_without_ephemeral_flag_on_unknown_option(monkeypatch):
+    calls = []
+
+    def fake_run(argv, **kw):
+        calls.append(list(argv))
+        out_path = argv[argv.index("--output-last-message") + 1]
+        if "--ephemeral" in argv:
+            return _Proc(returncode=1, stderr="error: unexpected argument '--ephemeral'")
+        with open(out_path, "w", encoding="utf-8") as fh:
+            fh.write("Ok title\n")
+        return _Proc()
+
+    monkeypatch.setattr(cli_namer.subprocess, "run", fake_run)
+    title = cli_namer.CliNamer("codex", {}).generate(_MSGS)
+    assert title == "Ok title"
+    assert len(calls) == 2
+    assert "--ephemeral" not in calls[1]
+    assert "--output-last-message" in calls[1]
 
 
 def test_codex_respects_model_override(monkeypatch):
