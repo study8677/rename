@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-19
+
 ### Fixed
 - **CLI namers no longer flood Claude Code / Codex with junk sessions.** The
   default `auto` / `claude` / `codex` namer shells out to `claude -p` or
